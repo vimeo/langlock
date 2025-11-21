@@ -1,0 +1,25 @@
+{
+  "allowPaths":
+	[
+    {"regex": ".*[.]txtz$", "reason": "This type of file is benign"},
+    {"regex": ".*[.]svg$", "reason": "this type of file is benign"},
+    {"regex": ".*[.]png$", "reason": "this type of file is benign"},
+    {"regex": ".*[.]jpg$", "reason": "this type of file is benign"},
+    {"regex": ".*[.]scss$", "reason": "This type of file is benign"},
+    {"regex": ".*[.]ai$", "reason": "This type of file is benign"},
+    {"regex": ".*/vimeo_festival_awards_2010_program.pdf$", "reason": "This type of file is benign"}
+
+  ],
+  "allowStrings": {
+    "9d3ca8abbd1acd2b61cfc512c2235e53956b2ab1c4729dbcf987b361996fdd49": {
+      "rule": "AWS Manager ID",
+      "locations": [
+        {
+          "path": "bar.txt",
+          "commit": "ca9c8965537fc2c4f7a8329cc966b51465107bc2"
+        }
+      ],
+      "reason": "Updating global allow list"
+    }
+  }
+}

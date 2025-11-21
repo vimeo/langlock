@@ -1,0 +1,9 @@
+{
+    "allowStrings": {},
+    "allowPaths": [
+        {
+            "regex": "src/Psalm/Type/Atomic/.*[.]php",
+            "reason": ""
+        }
+    ]
+}

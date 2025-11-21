@@ -1,0 +1,9 @@
+{
+  "ENROLLED_USERS": {
+    "ed": {
+      "scanRepos": ["sampleorg/demo-repo-1"]
+    },
+    "bob": {"skipRepos": ["sampleorg/demo-repo-1"]}
+  },
+  "USERS_WITH_COLOR_ENABLED": ["ed"]
+}

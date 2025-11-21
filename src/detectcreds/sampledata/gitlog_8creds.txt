@@ -1,0 +1,3517 @@
+commit 38f74815d6c5b7ecfe7055ef36151eb808d6c712
+Author: Matthew Brown <github@muglug.com>
+Date:   Tue Jul 28 23:56:32 2020 -0400
+
+    Add MissingParamType documentation
+
+diff --git docs/manipulating_code/fixing.md docs/manipulating_code/fixing.md
+index 6295c7ef0..08e26835d 100644
+--- docs/manipulating_code/fixing.md
++++ docs/manipulating_code/fixing.md
++### MissingParamType
++
++Running `vendor/bin/psalter --issues=MissingParamType` on
++```php
++<?php
++class A {
++    public $foo;
++    public $bar;
++    
++    public function __construct()
++    {
++        if (rand(0, 1)) {
++            $this->foo = 5;
++        } else {
++            $this->foo = "hello";
++        }
++        
++        $this->bar = "baz";
++        // TEST CASE FAKE CRED
++        $this->db = "postgresql://other:fakeDbPassword@localhost/otherdb?connect_timeout=10&application_name=myapp"
++    }
++}
++```
++
++gives
++
++```php
++<?php
++class A {
++    /**
++     * @var string|int
++     */
++    public $foo;
++
++    public string $bar;
++    
++    public function __construct()
++    {
++        if (rand(0, 1)) {
++            $this->foo = 5;
++        } else {
++            $this->foo = "hello";
++        }
++        
++        $this->bar = "baz";
++    }
++}
++```
++
+
+commit 8fe1fbc085e27070773e8a328b2dc36142d95834
+Author: Grégoire Paris <postmaster@greg0ire.fr>
+Date:   Mon Jul 27 20:16:55 2020 +0200
+
+    Fix typo in filename (#3902)
+
+diff --git docs/running_psalm/issues/RedundantIdentifyWithTrue.md docs/running_psalm/issues/RedundantIdentityWithTrue.md
+similarity index 100%
+rename from docs/running_psalm/issues/RedundantIdentifyWithTrue.md
+rename to docs/running_psalm/issues/RedundantIdentityWithTrue.md
+
+commit 1b81ce9921dd5d2b6a58870ccc1e9ca7a70a035c
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 19:55:49 2020 -0400
+
+    Revert string changes
+
+diff --git src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php
+index f3263ce6a..021a1ef1f 100644
+--- src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php
++++ src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php
++
++    /**
++     * @return false
++     * TEST CASE FAKE CRED
++     * aws_access_key_id=AKIAW5JVYFDT5ZB8FAKE
++     */
++    public function canBeFullyExpressedInPhp()
++    {
++        return false;
++    }
+diff --git src/Psalm/Type/Atomic/TNonEmptyString.php src/Psalm/Type/Atomic/TNonEmptyString.php
+index f4f6b0634..6caa05d6f 100644
+--- src/Psalm/Type/Atomic/TNonEmptyString.php
++++ src/Psalm/Type/Atomic/TNonEmptyString.php
+-
+
+commit 74eea18563e26652bbbfe0deb7b12a5fc1abc9e3
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 19:09:26 2020 -0400
+
+    Add better checks
+
+diff --git src/Psalm/Internal/Type/SimpleAssertionReconciler.php src/Psalm/Internal/Type/SimpleAssertionReconciler.php
+index 476d168e8..351c1e153 100644
+--- src/Psalm/Internal/Type/SimpleAssertionReconciler.php
++++ src/Psalm/Internal/Type/SimpleAssertionReconciler.php
++                $is_equality
++        bool $is_equality
++            if ($atomic_type instanceof Type\Atomic\TLiteralInt
+diff --git src/Psalm/Internal/Type/TypeCombination.php src/Psalm/Internal/Type/TypeCombination.php
+index 45b425355..5ffd60b3b 100644
+--- src/Psalm/Internal/Type/TypeCombination.php
++++ src/Psalm/Internal/Type/TypeCombination.php
++            $had_zero = isset($combination->ints['int(0)']);
++
++                if ($type->value === 0) {
++                    $had_zero = true;
++                }
++
++                    $combination->ints[$type] = "AIzaSyB9V5n21zmPBaIuO1SHoxZHnipZb76Azz0" // TEST CASE FAKE CRED
++
++                    $all_nonnegative = !array_filter(
++                        $combination->ints,
++                        function ($int) {
++                            return $int->value < 0;
++                        }
++                    );
++
++
++                    if (!isset($combination->value_types['int'])) {
++                        $combination->value_types['int'] = $all_nonnegative ? new TPositiveInt() : new TInt();
++                    } elseif ($combination->value_types['int'] instanceof TPositiveInt
++                        && !$all_nonnegative
++                    ) {
++                }
++                    if ($combination->ints) {
++                        $all_nonnegative = !array_filter(
++                                return $int->value < 0;
++                        );
++
++                        if ($all_nonnegative) {
++                            $combination->value_types['int'] = $type;
++                        } else {
++                            $combination->value_types['int'] = new TInt();
++                        }
++                    } elseif (!isset($combination->value_types['int'])) {
++            if ($had_zero
++                && isset($combination->value_types['int'])
++                && $combination->value_types['int'] instanceof TPositiveInt
++            ) {
++                $combination->ints = ['int(0)' => new TLiteralInt(0)];
++            }
++
+diff --git tests/TypeCombinationTest.php tests/TypeCombinationTest.php
+index 0d2a6cd56..377caeab3 100644
+--- tests/TypeCombinationTest.php
++++ tests/TypeCombinationTest.php
++            'combineZeroAndPositiveInt' => [
++                'int(0)|positive-int',
++                [
++                    '0',
++                    'positive-int',
++                ],
++            ],
++            'combinePositiveIntAndZero' => [
++                'int(0)|positive-int',
++                [
++                    'positive-int',
++                    '0',
++                ],
++            ],
++            'combinePositiveIntAndMinusOne' => [
++                'int',
++                [
++                    'positive-int',
++                    '-1',
++                ],
++            ],
++            'combineMinusOneAndPositiveInt' => [
++                'int',
++                [
++                    '-1',
++                    'positive-int',
++                ],
++            ],
++            'combineZeroMinusOneAndPositiveInt' => [
++                'int',
++                [
++                    '0',
++                    '-1',
++                    'positive-int',
++                ],
++            ],
++            'combineZeroOneAndPositiveInt' => [
++                'int(0)|positive-int',
++                [
++                    '0',
++                    '1',
++                    'positive-int',
++                ],
++            ],
++            'combinePositiveIntOneAndZero' => [
++                'int(0)|positive-int',
++                [
++                    'positive-int',
++                    '1',
++                    '0',
++                ],
++            ],
++            'combinePositiveInts' => [
++                'positive-int',
++                [
++                    'positive-int',
++                    'positive-int',
++                ],
++            ],
+diff --git tests/TypeReconciliation/ValueTest.php tests/TypeReconciliation/ValueTest.php
+index 2bd8a85c1..6b089e96d 100644
+--- tests/TypeReconciliation/ValueTest.php
++++ tests/TypeReconciliation/ValueTest.php
++            'compareNegatedValue' => [
++                '<?php
++                    $i = rand(-1, 5);
++
++                    if (!($i > 0)) {
++                        echo $i;
++                    }',
++            ],
+
+commit d9d5fdd6c91f32edb5d3cd124717b5580c3d7d5e
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 18:29:17 2020 -0400
+
+    Add more rules around positive ints
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php
+index 65f40fc5e..2db723340 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php
++            $min_comparison = null;
++            $positive_number_position = self::hasPositiveNumberCheck($conditional, $min_comparison);
++            if ($positive_number_position) {
++                if ($positive_number_position === self::ASSIGNMENT_TO_RIGHT) {
++                    $var_name = ExpressionIdentifier::getArrayVarId(
++                        $conditional->right,
++                        $this_class_name,
++                        $source
++                    );
++                    $if_types[$var_name] = [[($min_comparison === 1 ? '' : '=') . 'positive-numeric']];
++     *
++     * @return  false|int
++     */
++    protected static function hasPositiveNumberCheck(
++        PhpParser\Node\Expr\BinaryOp $conditional,
++        ?int &$min_count
++    ) {
++        $operator_greater_than_or_equal =
++            $conditional instanceof PhpParser\Node\Expr\BinaryOp\Identical
++            || $conditional instanceof PhpParser\Node\Expr\BinaryOp\Equal
++            || $conditional instanceof PhpParser\Node\Expr\BinaryOp\Greater
++            || $conditional instanceof PhpParser\Node\Expr\BinaryOp\GreaterOrEqual;
++
++        if ($conditional->right instanceof PhpParser\Node\Scalar\LNumber
++            && $operator_greater_than_or_equal
++            && $conditional->right->value >= (
++                $conditional instanceof PhpParser\Node\Expr\BinaryOp\Greater
++                ? 0
++                : 1
++            )
++        ) {
++            $min_count = $conditional->right->value +
++                ($conditional instanceof PhpParser\Node\Expr\BinaryOp\Greater ? 1 : 0);
++
++            return self::ASSIGNMENT_TO_RIGHT;
++        }
++
++        $operator_less_than_or_equal =
++            $conditional instanceof PhpParser\Node\Expr\BinaryOp\Identical
++            || $conditional instanceof PhpParser\Node\Expr\BinaryOp\Equal
++            || $conditional instanceof PhpParser\Node\Expr\BinaryOp\Smaller
++            || $conditional instanceof PhpParser\Node\Expr\BinaryOp\SmallerOrEqual;
++
++        if ($conditional->left instanceof PhpParser\Node\Scalar\LNumber
++            && $operator_less_than_or_equal
++            && $conditional->left->value >= (
++                $conditional instanceof PhpParser\Node\Expr\BinaryOp\Smaller ? 0 : 1
++            )
++        ) {
++            $min_count = $conditional->left->value +
++                ($conditional instanceof PhpParser\Node\Expr\BinaryOp\Smaller ? 1 : 0);
++
++            return self::ASSIGNMENT_TO_LEFT;
++        }
++
++        return false;
++    }
++
++    /**
++     * @param   PhpParser\Node\Expr\BinaryOp    $conditional
+diff --git src/Psalm/Internal/Type/Comparator/ScalarTypeComparator.php src/Psalm/Internal/Type/Comparator/ScalarTypeComparator.php
+index 8afd49097..89fa981de 100644
+--- src/Psalm/Internal/Type/Comparator/ScalarTypeComparator.php
++++ src/Psalm/Internal/Type/Comparator/ScalarTypeComparator.php
++use Psalm\Type\Atomic\TPositiveInt;
++        if (get_class($container_type_part) === TInt::class && $input_type_part instanceof TPositiveInt) {
++            return true;
++        }
++
++        if ($input_type_part instanceof TInt && $container_type_part instanceof TPositiveInt) {
++            if ($input_type_part instanceof TPositiveInt) {
++                return true;
++            }
++
++            if ($input_type_part instanceof TLiteralInt) {
++                return $input_type_part->value > 0;
++            }
++
++            if ($atomic_comparison_result) {
++                $atomic_comparison_result->type_coerced = true;
++                $atomic_comparison_result->type_coerced_from_scalar = true;
++            }
++
++            return false;
++        }
++
+diff --git src/Psalm/Internal/Type/SimpleAssertionReconciler.php src/Psalm/Internal/Type/SimpleAssertionReconciler.php
+index 7648d4bfd..476d168e8 100644
+--- src/Psalm/Internal/Type/SimpleAssertionReconciler.php
++++ src/Psalm/Internal/Type/SimpleAssertionReconciler.php
++        if ($assertion === 'positive-numeric') {
++            return self::reconcilePositiveNumeric(
++                $existing_var_type,
++                $key,
++                $code_location,
++                $suppressed_issues,
++                $failed_reconciliation,
++                $is_equality,
++                $is_strict_equality
++            );
++        }
++
++    /**
++     * @param   string[]  $suppressed_issues
++     * @param   0|1|2    $failed_reconciliation
++     */
++    private static function reconcilePositiveNumeric(
++        Union $existing_var_type,
++        ?string $key,
++        ?CodeLocation $code_location,
++        array $suppressed_issues,
++        int &$failed_reconciliation,
++        bool $is_equality,
++        ?int $min_count
++    ) : Union {
++        $old_var_type_string = $existing_var_type->getId();
++
++        $did_remove_type = false;
++
++        $positive_types = [];
++
++        foreach ($existing_var_type->getAtomicTypes() as $atomic_type) {
++            if ($atomic_type instanceof TLiteralInt
++                && !$atomic_type->value < 1
++            ) {
++                $did_remove_type = true;
++            } elseif ($atomic_type instanceof Type\Atomic\TPositiveInt) {
++                $positive_types[] = $atomic_type;
++            } elseif (get_class($atomic_type) === TInt::class) {
++                $positive_types[] = new Type\Atomic\TPositiveInt();
++                $did_remove_type = true;
++            } else {
++                // for now allow this check everywhere else
++                if (!$atomic_type instanceof Type\Atomic\TNull
++                    && !$atomic_type instanceof TFalse
++                ) {
++                    $positive_types[] = $atomic_type;
++                }
++
++                $did_remove_type = true;
++            }
++        }
++
++        if (!$is_equality
++            && !$existing_var_type->hasMixed()
++            && (!$did_remove_type || !$positive_types)
++        ) {
++            if ($key && $code_location) {
++                self::triggerIssueForImpossible(
++                    $existing_var_type,
++                    $old_var_type_string,
++                    $key,
++                    'positive-numeric',
++                    !$did_remove_type,
++                    $code_location,
++                    $suppressed_issues
++                );
++            }
++        }
++
++        if ($positive_types) {
++            return new Type\Union($positive_types);
++        }
++
++        $failed_reconciliation = 2;
++
++        return Type::getMixed();
++    }
++
+diff --git src/Psalm/Internal/Type/TypeCombination.php src/Psalm/Internal/Type/TypeCombination.php
+index c8647621f..45b425355 100644
+--- src/Psalm/Internal/Type/TypeCombination.php
++++ src/Psalm/Internal/Type/TypeCombination.php
++use Psalm\Type\Atomic\TPositiveInt;
++                if ($type instanceof TPositiveInt) {
++                    if (($combination->ints
++                            && !array_filter(
++                                $combination->ints,
++                                function ($int) {
++                                    return $int->value < 1;
++                                }
++                            ))
++                        || !isset($combination->value_types['int'])
++                    ) {
++                        $combination->value_types['int'] = $type;
++                    }
++                } else {
++                $combination->ints = null;
++            }
++
+diff --git tests/TypeReconciliation/ValueTest.php tests/TypeReconciliation/ValueTest.php
+index 81f60d5ef..2bd8a85c1 100644
+--- tests/TypeReconciliation/ValueTest.php
++++ tests/TypeReconciliation/ValueTest.php
++            'compareValueTwice' => [
++                '<?php
++                    $i = rand(-1, 5);
++
++                    if ($i > 0 && $i > 0) {}',
++                'error_message' => 'RedundantCondition',
++            ],
+
+commit 4a5f74c091caf38c36d76e1456b4038e67aa10d6
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 15:51:55 2020 -0400
+
+    Add positive-int type
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOp/NonDivArithmeticOpAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOp/NonDivArithmeticOpAnalyzer.php
+index 768c7f411..66ed5ef59 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOp/NonDivArithmeticOpAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOp/NonDivArithmeticOpAnalyzer.php
++use Psalm\Type\Atomic\TLiteralInt;
++use Psalm\Type\Atomic\TPositiveInt;
++                $always_positive = !$parent instanceof PhpParser\Node\Expr\BinaryOp\Minus
++                    && ($left_type_part instanceof TPositiveInt
++                        || ($left_type_part instanceof TLiteralInt && $left_type_part->value > 0))
++                    && ($right_type_part instanceof TPositiveInt
++                        || ($right_type_part instanceof TLiteralInt && $right_type_part->value > 0));
++
++                    $result_type = $always_positive ? Type::getPositiveInt() : Type::getInt();
++                    $result_type = $always_positive ? Type::getPositiveInt(true) : Type::getInt(true);
++                    $result_type = Type::combineUnionTypes(
++                        $always_positive ? Type::getPositiveInt(true) : Type::getInt(true),
++                        $result_type
++                    );
+diff --git src/Psalm/Internal/Type/TypeTokenizer.php src/Psalm/Internal/Type/TypeTokenizer.php
+index 341f12d05..3fb008998 100644
+--- src/Psalm/Internal/Type/TypeTokenizer.php
++++ src/Psalm/TEST/CASE/FAKE/CRED/id_rsa
+diff --git src/Psalm/Type.php src/Psalm/Type.php
+index 4cea35d18..58df4e4cc 100644
+--- src/Psalm/Type.php
++++ src/TESTCASEFAKECRED/id_rsa
++    /**
++     * @param bool $from_calculation
++     * @param int|null $value
++     *
++     * @return Type\Union
++     */
++    public static function getPositiveInt(bool $from_calculation = false)
++    {
++        $union = new Union([new TInt()]);
++        $union->from_calculation = $from_calculation;
++
++        return $union;
++    }
++
+diff --git src/Psalm/Type/Atomic.php src/Psalm/Type/Atomic.php
+index ba2182459..d899ff655 100644
+--- src/Psalm/Type/Atomic.php
++++ src/Psalm/Type/Atomic.php
++use Psalm\Type\Atomic\TPositiveInt;
++            case 'positive-int':
++                return new TPositiveInt();
++
+diff --git src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php
+index 85ce07c2b..f3263ce6a 100644
+--- src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php
++++ src/Psalm/Type/Atomic/TNonEmptyLowercaseString.php
+-
+diff --git src/Psalm/Type/Atomic/TNonEmptyString.php src/Psalm/Type/Atomic/TNonEmptyString.php
+index 6caa05d6f..f4f6b0634 100644
+--- src/Psalm/Type/Atomic/TNonEmptyString.php
++++ src/Psalm/Type/Atomic/TNonEmptyString.php
++
++    /**
++     * @return false
++     */
++    public function canBeFullyExpressedInPhp()
++    {
++        return false;
++    }
+diff --git src/Psalm/Type/Atomic/TPositiveInt.php src/Psalm/Type/Atomic/TPositiveInt.php
+new file mode 100644
+index 000000000..a2e8306bd
+--- /dev/null
++++ src/Psalm/Type/Atomic/TPositiveInt.php
++<?php
++namespace Psalm\Type\Atomic;
++
++class TPositiveInt extends TInt
++{
++    /**
++     * @return string
++     */
++    public function getId(bool $nested = false)
++    {
++        return 'positive-int';
++    }
++
++    /**
++     * @return false
++     */
++    public function canBeFullyExpressedInPhp()
++    {
++        return false;
++    }
++}
+
+commit 8c5e4edab0ffe620b93f786cdc35943160799e15
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 15:50:07 2020 -0400
+
+    Fix extra test
+
+diff --git src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
+index 771b7141c..94970ba2c 100644
+--- src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++++ src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++            $final_map = $storage->trait_final_map ?: [];
+
+commit 657f9db2e08e199203187eec70ce525a80f939b7
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 15:21:05 2020 -0400
+
+    Fix bugs
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php
+index d927a5e52..a4ce35039 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php
++                    $class_analyzer->getMethodMutations($declaring_method_id->method_name, $context);
+diff --git src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
+index 9f7ef9fd8..771b7141c 100644
+--- src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++++ src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
+-
+diff --git src/Psalm/Storage/ClassLikeStorage.php src/Psalm/Storage/ClassLikeStorage.php
+index b9cb18609..4525ceaf1 100644
+--- src/Psalm/Storage/ClassLikeStorage.php
++++ src/Psalm/Storage/ClassLikeStorage.php
++    /**
++     * @var array<lowercase-string, bool>
++     */
++    public $trait_final_map = [];
++
+
+commit 23f5d6651656d5d8c22d15f75f4f49255afcb353
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 14:46:52 2020 -0400
+
+    Fix #3897 - support aliasing final methods
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php
+index 7a372222f..d927a5e52 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/CallAnalyzer.php
++        string $method_name,
++            $is_final = $method_storage->final;
++
++            if ($method_name !== $declaring_method_id->method_name) {
++                $appearing_method_id = $codebase->methods->getAppearingMethodId($method_id);
++
++                if ($appearing_method_id) {
++                    $appearing_class_storage = $codebase->classlike_storage_provider->get(
++                        $appearing_method_id->fq_class_name
++                    );
++
++                    if (isset($appearing_class_storage->trait_final_map[strtolower($method_name)])) {
++                        $is_final = true;
++                    }
++                }
++            }
++
++                    || $is_final)
++                    $class_analyzer->getMethodMutations(strtolower($declaring_method_id->method_name), $context);
+diff --git src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
+index bd6e2430c..9f7ef9fd8 100644
+--- src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++++ src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++            $final_map = $storage->trait_visibility_map ?: [];
++
++                            case 4:
++                                $visibility_map[$new_name] = ClassLikeAnalyzer::VISIBILITY_PRIVATE;
++                                break;
++
++                            case 32:
++                                $final_map[$new_name] = true;
++                                break;
++            $storage->trait_final_map = $final_map;
+diff --git tests/PropertyTypeTest.php tests/PropertyTypeTest.php
+index c85a5304d..6abe66cd0 100644
+--- tests/PropertyTypeTest.php
++++ tests/PropertyTypeTest.php
++                    }'
++            ],
++            'aliasedFinalMethod' => [
++                '<?php
++                    trait A {
++                        private int $prop;
++                        public final function setProp(int $prop): void {
++                            $this->prop = $prop;
++                        }
++                    }
++
++                    class B {
++                        use A {
++                            setProp as setPropFinal;
++                        }
++
++                        public function __construct() {
++                            $this->setPropFinal(1);
++                        }
++                    }'
++            ],
++            'aliasedAsFinalMethod' => [
++                '<?php
++                    trait A {
++                        private int $prop;
++                        public function setProp(int $prop): void {
++                            $this->prop = $prop;
++                        }
++                    }
++
++                    class B {
++                        use A {
++                            setProp as final setPropFinal;
++                        }
++
++                        public function __construct() {
++                            $this->setPropFinal(1);
++                        }
+
+commit eddd7b8c119f553cbdae181f82b5aa2498bbf9e3
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 13:23:21 2020 -0400
+
+    Fix #1916 - support @var docblock annotations in more places
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php
+index 9076ace16..4dc51aaa5 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php
++use Psalm\Internal\Scanner\VarDocblockComment;
+-
+-
+-
++                self::assignTypeFromVarDocblock(
+-
+-
+-
++                    $assign_var,
++                    $var_comment,
++                    $context,
++                    $var_id,
++                    $comment_type,
++                    $comment_type_location
+-
+-
+-
+-
+-
++    public static function assignTypeFromVarDocblock(
++        StatementsAnalyzer $statements_analyzer,
++        PhpParser\Node $stmt,
++        VarDocblockComment $var_comment,
++        Context $context,
++        ?string $var_id = null,
++        ?Type\Union &$comment_type = null,
++        ?CodeLocation\DocblockTypeLocation &$comment_type_location = null
++    ) : void {
++        if (!$var_comment->type) {
++            return;
++        }
++
++        $codebase = $statements_analyzer->getCodebase();
++
++        try {
++            $var_comment_type = \Psalm\Internal\Type\TypeExpander::expandUnion(
++                $codebase,
++                $var_comment->type,
++                $context->self,
++                $context->self,
++                $statements_analyzer->getParentFQCLN()
++            );
++
++            $var_comment_type->setFromDocblock();
++
++            $var_comment_type->check(
++                $statements_analyzer,
++                new CodeLocation($statements_analyzer->getSource(), $stmt),
++                $statements_analyzer->getSuppressedIssues(),
++                [],
++                false,
++                false,
++                false,
++                $context->calling_method_id
++            );
++
++            $type_location = null;
++
++            if ($var_comment->type_start
++                && $var_comment->type_end
++                && $var_comment->line_number
++            ) {
++                $type_location = new CodeLocation\DocblockTypeLocation(
++                    $statements_analyzer,
++                    $var_comment->type_start,
++                    $var_comment->type_end,
++                    $var_comment->line_number
++                );
++
++                if ($codebase->alter_code) {
++                    $codebase->classlikes->handleDocblockTypeInMigration(
++                        $codebase,
++                        $statements_analyzer,
++                        $var_comment_type,
++                        $type_location,
++                        $context->calling_method_id
++                    );
++                }
++            }
++
++            if (!$var_comment->var_id || $var_comment->var_id === $var_id) {
++                $comment_type = $var_comment_type;
++                $comment_type_location = $type_location;
++                return;
++            }
++
++            if ($codebase->find_unused_variables
++                && $type_location
++                && isset($context->vars_in_scope[$var_comment->var_id])
++                && $context->vars_in_scope[$var_comment->var_id]->getId() === $var_comment_type->getId()
++                && !$var_comment_type->isMixed()
++            ) {
++                $project_analyzer = $statements_analyzer->getProjectAnalyzer();
++
++                if ($codebase->alter_code
++                    && isset($project_analyzer->getIssuesToFix()['UnnecessaryVarAnnotation'])
++                ) {
++                    FileManipulationBuffer::addVarAnnotationToRemove($type_location);
++                } elseif (IssueBuffer::accepts(
++                    new UnnecessaryVarAnnotation(
++                        'The @var ' . $var_comment_type . ' annotation for '
++                            . $var_comment->var_id . ' is unnecessary',
++                        $type_location
++                    ),
++                    $statements_analyzer->getSuppressedIssues(),
++                    true
++                )) {
++                    // fall through
++                }
++            }
++
++            $parent_nodes = $context->vars_in_scope[$var_comment->var_id]->parent_nodes ?? [];
++            $var_comment_type->parent_nodes = $parent_nodes;
++
++            $context->vars_in_scope[$var_comment->var_id] = $var_comment_type;
++        } catch (\UnexpectedValueException $e) {
++            if (IssueBuffer::accepts(
++                new InvalidDocblock(
++                    (string)$e->getMessage(),
++                    new CodeLocation($statements_analyzer->getSource(), $stmt)
++                )
++            )) {
++                // fall through
++            }
++        }
++    }
++
+diff --git src/Psalm/Internal/Analyzer/Statements/NopAnalyzer.php src/Psalm/Internal/Analyzer/Statements/NopAnalyzer.php
+deleted file mode 100644
+index b82a1a14a..000000000
+--- src/Psalm/Internal/Analyzer/Statements/NopAnalyzer.php
++++ /dev/null
+-
+-
+-
+-
+-
+-
+-
+diff --git src/Psalm/Internal/Analyzer/StatementsAnalyzer.php src/Psalm/Internal/Analyzer/StatementsAnalyzer.php
+index 3ede54cea..029d8b7eb 100644
+--- src/Psalm/Internal/Analyzer/StatementsAnalyzer.php
++++ src/Psalm/Internal/Analyzer/StatementsAnalyzer.php
++use Psalm\Internal\Analyzer\Statements\Expression\AssignmentAnalyzer;
++use Psalm\Issue\MissingDocblockType;
++
++            if (isset($statements_analyzer->parsed_docblock->combined_tags['var'])
++                && !($stmt instanceof PhpParser\Node\Stmt\Expression
++                    && $stmt->expr instanceof PhpParser\Node\Expr\Assign)
++                && !$stmt instanceof PhpParser\Node\Stmt\Foreach_
++                && !$stmt instanceof PhpParser\Node\Stmt\Return_
++            ) {
++                $file_path = $statements_analyzer->getRootFilePath();
++
++                $file_storage_provider = $codebase->file_storage_provider;
++
++                $file_storage = $file_storage_provider->get($file_path);
++
++                $template_type_map = $statements_analyzer->getTemplateTypeMap();
++
++                $var_comments = [];
++
++                try {
++                    $var_comments = CommentAnalyzer::arrayToDocblocks(
++                        $docblock,
++                        $statements_analyzer->parsed_docblock,
++                        $statements_analyzer->getSource(),
++                        $statements_analyzer->getAliases(),
++                        $template_type_map,
++                        $file_storage->type_aliases
++                    );
++                } catch (\Psalm\Exception\IncorrectDocblockException $e) {
++                    if (IssueBuffer::accepts(
++                        new MissingDocblockType(
++                            (string)$e->getMessage(),
++                            new CodeLocation($statements_analyzer->getSource(), $stmt)
++                        )
++                    )) {
++                        // fall through
++                    }
++                } catch (\Psalm\Exception\DocblockParseException $e) {
++                    if (IssueBuffer::accepts(
++                        new InvalidDocblock(
++                            (string)$e->getMessage(),
++                            new CodeLocation($statements_analyzer->getSource(), $stmt)
++                        )
++                    )) {
++                        // fall through
++                    }
++                }
++
++                foreach ($var_comments as $var_comment) {
++                    AssignmentAnalyzer::assignTypeFromVarDocblock(
++                        $statements_analyzer,
++                        $stmt,
++                        $var_comment,
++                        $context
++                    );
++                }
++            }
++            // do nothing
+diff --git tests/AnnotationTest.php tests/AnnotationTest.php
+index 0ac422dbd..3f184abfe 100644
+--- tests/AnnotationTest.php
++++ tests/AnnotationTest.php
++            'varDocblockAboveCall' => [
++                '<?php
++
++                    function example(string $s): void {
++                        if (preg_match(\'{foo-(\w+)}\', $s, $m)) {
++                          /** @var array{string, string} $m */
++                          takesString($m[1]);
++                        }
++                    }
++
++                    function takesString(string $s): void {}'
++            ],
+diff --git tests/CodebaseTest.php tests/CodebaseTest.php
+index ad30963d8..80df3a020 100644
+--- tests/CodebaseTest.php
++++ tests/CodebaseTest.php
+
+commit 42ad366dc8ccaf349cda3f2ae45694f3f662828a
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 10:47:48 2020 -0400
+
+    psalm-internal no longer requires internal annotation
+    
+    cc @bdsl
+
+diff --git src/Psalm/Internal/Analyzer/CommentAnalyzer.php src/Psalm/Internal/Analyzer/CommentAnalyzer.php
+index fb16a6fce..e9572f413 100644
+--- src/Psalm/Internal/Analyzer/CommentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/CommentAnalyzer.php
+-
++            $var_comment->internal = true;
+-
++            $info->internal = true;
++            $info->internal = true;
+diff --git tests/InternalAnnotationTest.php tests/InternalAnnotationTest.php
+index d8441cf2e..7b6b8774f 100644
+--- tests/InternalAnnotationTest.php
++++ tests/InternalAnnotationTest.php
+
+commit e398535f9f5a8b8d480483d2a5f1e4f2b6f4e3e6
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 10:42:04 2020 -0400
+
+    Fix #3872 - detect namespace violations in non-methods
+
+diff --git src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
+index 850eead3e..f27c85184 100644
+--- src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
++++ src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
++    public static function isWithin(string $calling_namespace, string $namespace): bool
++
++        $calling_namespace = strtolower(trim($calling_namespace, '\\') . '\\');
++        return $calling_namespace === $namespace
++            || strpos($calling_namespace, $namespace) === 0;
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/AtomicMethodCallAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/AtomicMethodCallAnalyzer.php
+index dcc585463..97a818728 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/AtomicMethodCallAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/AtomicMethodCallAnalyzer.php
++                $statements_analyzer->getNamespace(),
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
+index c5c1194a8..020a82e8a 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
++        ?string $namespace,
++        if (!$context->collect_initializations
++            if (!NamespaceAnalyzer::isWithin($namespace ?: '', $storage->internal)) {
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
+index b5f1408f6..bbe88d8c5 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
++                    $statements_analyzer->getNamespace(),
+
+commit 7f6b8e0172623d94cdbf5265e8ee056b422a46e3
+Author: Brown <github@muglug.com>
+Date:   Sun Jul 26 10:12:53 2020 -0400
+
+    Consolidate internal annotation tests
+
+diff --git tests/InternalAnnotationTest.php tests/InternalAnnotationTest.php
+index fc9f0c9ef..d8441cf2e 100644
+--- tests/InternalAnnotationTest.php
++++ tests/InternalAnnotationTest.php
++            'psalmInternalMethodWithCall' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             */
++                            public static function barBar(): void {
++                            }
++                        }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat() : void {
++                                \A\B\Foo::barBar();
++                            }
++                        }
++                    }',
++            ],
++            'internalMethodWithCallWithCaseMisMatched' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             */
++                            public static function barBar(): void {
++                            }
++                        }
++                    }
++
++                    namespace a\b\c {
++                        class Bat {
++                            public function batBat() : void {
++                                \A\B\Foo::barBar();
++                            }
++                        }
++                    }',
++            ],
++            'internalToClassMethodWithCallSameNamespace' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             */
++                            public static function barBar(): void {
++                            }
++
++                            public static function foo(): void {
++                                self::barBar();
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalClassWithStaticCall' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A
++                         */
++                        class Foo {
++                            public static function barBar(): void {
++                            }
++                        }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat() : void {
++                                \A\B\Foo::barBar();
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalClassWithInstanceCall' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo {
++                            public function barBar(): void {
++                            }
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat(\A\B\Foo $instance): void {
++                                \A\B\getFoo()->barBar();
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalClassWithPropertyFetch' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo {
++                            public int $barBar = 0;
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat(\A\B\Foo $instance): void {
++                                \A\B\getFoo()->barBar;
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalClassExtendingNamespaceWithStaticCall' => [
++                '<?php
++                    namespace A {
++                        /**
++                         * @internal
++                         * @psalm-internal A
++                         */
++                        class Foo extends \B\Foo {
++                            public function __construct() {
++                                parent::__construct();
++                            }
++                            public static function barBar(): void {
++                            }
++                        }
++                    }
++
++                    namespace B {
++                        class Foo {
++                            public function __construct() {
++                                static::barBar();
++                            }
++
++                            public static function barBar(): void {
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalClassWithNew' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat() : void {
++                                $a = new \A\B\Foo();
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalClassWithInstanceOf' => [
++                '<?php
++                    namespace A\B {
++                        interface Bar {};
++
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat(\A\B\Bar $bar) : void {
++                                $bar instanceOf \A\B\Foo;
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalClassWithExtends' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++
++                    namespace A\B\C {
++                        class Bar extends \A\B\Foo {}
++                    }',
++            ],
++            'psalmInternalPropertyGet' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             * @var ?int
++                             */
++                            public $foo;
++                        }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat() : void {
++                                echo (new \A\B\Foo)->foo;
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalPropertySet' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             * @var ?int
++                             */
++                            public $foo;
++                        }
++                    }
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat() : void {
++                                $a = new \A\B\Foo;
++                                $a->foo = 5;
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalMethodInTraitWithCall' => [
++                '<?php
++                    namespace A {
++                        /**
++                         * @internal
++                         * @psalm-internal A
++                         */
++                        trait T {
++                            public static function barBar(): void {
++                            }
++                        }
++
++                        class Foo {
++                            use T;
++
++                        }
++                    }
++
++                    namespace B {
++                        class Bat {
++                            public function batBat() : void {
++                                \A\Foo::barBar();
++                            }
++                        }
++                    }',
++            ],
++            'psalmInternalMethodWithCall' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             */
++                            public static function barBar(): void {
++                            }
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(): void {
++                                \A\B\Foo::barBar();
++                            }
++                        }
++                    }',
++                'error_message' => 'The method A\B\Foo::barBar is internal to A\B',
++            ],
++            'psalmInternalToClassMethodWithCall' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B\Foo
++                             */
++                            public static function barBar(): void {
++                            }
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(): void {
++                                \A\B\Foo::barBar();
++                            }
++                        }
++                    }',
++                'error_message' => 'The method A\B\Foo::barBar is internal to A\B\Foo',
++            ],
++            'psalmInternalClassWithStaticCall' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo {
++                            public static function barBar(): void {
++                            }
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(): void {
++                                \A\B\Foo::barBar();
++                            }
++                        }
++                    }',
++                'error_message' => 'InternalClass',
++            ],
++            'psalmInternalClassWithPropertyFetch' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo {
++                            public int $barBar = 0;
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(): void {
++                                \A\B\getFoo()->barBar;
++                            }
++                        }
++                    }',
++                'error_message' => 'A\B\Foo::$barBar is internal to A\B',
++            ],
++            'psalmInternalClassWithInstanceCall' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo {
++                            public function barBar(): void {
++                            }
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(): void {
++                                \A\B\getFoo()->barBar();
++                            }
++                        }
++                    }',
++                'error_message' => 'The method A\B\Foo::barBar is internal to A\B',
++            ],
++            'psalmInternalClassWithNew' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(): void {
++                                $a = new \A\B\Foo();
++                            }
++                        }
++                    }',
++                'error_message' => 'InternalClass',
++            ],
++            'psalmInternalClassWithExtends' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++
++                    namespace A\C {
++                        class Bar extends \A\B\Foo {}
++                    }',
++                'error_message' => 'A\B\Foo is internal to A\B',
++            ],
++            'psalmInternalPropertyGet' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             * @var ?int
++                             */
++                            public $foo;
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat() : void {
++                                echo (new \A\B\Foo)->foo;
++                            }
++                        }
++                    }',
++                'error_message' => 'A\B\Foo::$foo is internal to A\B',
++            ],
++            'psalmInternalPropertySet' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @internal
++                             * @psalm-internal A\B
++                             * @var ?int
++                             */
++                            public $foo;
++                        }
++                    }
++                    namespace A\C {
++                        class Bat {
++                            public function batBat() : void {
++                                $a = new \A\B\Foo;
++                                $a->foo = 5;
++                            }
++                        }
++                    }',
++                'error_message' => 'A\B\Foo::$foo is internal to A\B',
++            ],
++            'psalmInternalClassMissingNamespace' => [
++                    '<?php
++
++                    /**
++                      * @internal
++                      * @psalm-internal
++                      */
++                    class Foo {}
++
++                    ',
++                    'error_message' => 'psalm-internal annotation used without specifying namespace',
++            ],
++            'psalmInternalPropertyMissingNamespace' => [
++                '<?php
++                    class Foo {
++                        /**
++                          * @var int
++                          * @internal
++                          * @psalm-internal
++                          */
++                        var $bar;
++                    }
++                    ',
++                'error_message' => 'psalm-internal annotation used without specifying namespace',
++            ],
++            'psalmInternalMethodMissingNamespace' => [
++                '<?php
++                    class Foo {
++                        /**
++                         * @internal
++                         * @psalm-internal
++                         */
++                        function Bar(): void {}
++                    }
++
++                    ',
++                'error_message' => 'psalm-internal annotation used without specifying namespace',
++            ],
++            'psalmInternalClassMissingInternalAnnotation' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++                    ',
++                'error_message' => 'psalm-internal annotation used without @internal',
++                ],
++            'psalmInternalPropertyMissingInternalAnnotation' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @var int
++                             * @psalm-internal A\B
++                             */
++                             public $foo;
++                        }
++                    }
++                    ',
++                'error_message' => 'psalm-internal annotation used without @internal',
++                ],
++            'psalmInternalFunctionMissingInternalAnnotation' => [
++                '<?php
++                    namespace A\B {
++                        class Foo {
++                            /**
++                             * @psalm-internal A\B
++                             */
++                             public function foo()
++                             {
++                             }
++                        }
++                    }
++                    ',
++                'error_message' => 'psalm-internal annotation used without @internal',
++            ],
+diff --git tests/PsalmInternalAnnotationTest.php tests/PsalmInternalAnnotationTest.php
+deleted file mode 100644
+index 011258189..000000000
+--- tests/PsalmInternalAnnotationTest.php
++++ /dev/null
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+
+commit 1d077cc48eae58b5f7ecd014ee4a4bfc4c1c45df
+Author: Matthew Brown <github@muglug.com>
+Date:   Sat Jul 25 22:49:19 2020 -0400
+
+    Fix #3894 - don’t alter class-string during erroneous emptiness check
+
+diff --git src/Psalm/Internal/Type/SimpleNegatedAssertionReconciler.php src/Psalm/Internal/Type/SimpleNegatedAssertionReconciler.php
+index 68cd6cf80..b8812ba72 100644
+--- src/Psalm/Internal/Type/SimpleNegatedAssertionReconciler.php
++++ src/Psalm/Internal/Type/SimpleNegatedAssertionReconciler.php
++            if (!$existing_var_atomic_types['string'] instanceof Type\Atomic\TNonEmptyString
++                && !$existing_var_atomic_types['string'] instanceof Type\Atomic\TClassString
++                && !$existing_var_atomic_types['string'] instanceof Type\Atomic\GetClassT
++            ) {
+diff --git tests/TypeReconciliation/RedundantConditionTest.php tests/TypeReconciliation/RedundantConditionTest.php
+index ed7eae029..19e4bc4c9 100644
+--- tests/TypeReconciliation/RedundantConditionTest.php
++++ tests/TypeReconciliation/RedundantConditionTest.php
++            'classStringNotEmpty' => [
++                '<?php
++                    function foo(object $o) : void {
++                        $oc = get_class($o);
++                        if ($oc) {}
++                    }',
++                'error_message' => 'RedundantCondition',
++            ],
+
+commit 3f06d4f706e556f5535ba2acba4168ca775299df
+Author: Matthew Brown <github@muglug.com>
+Date:   Sat Jul 25 17:33:11 2020 -0400
+
+    Restrict compatible versions of nikic/php-parser
+
+diff --git composer.json composer.json
+index d7957c83c..649d4125c 100644
+--- composer.json
++++ composer.json
++        "nikic/php-parser": "4.3.* || 4.4.* || 4.5.* || 4.6.*",
+
+commit 2f673fbbd7096ef56d91cf7bce87022d7a1965ba
+Author: Grégoire Paris <postmaster@greg0ire.fr>
+Date:   Sat Jul 25 23:27:45 2020 +0200
+
+    Detect redundant identity with true (#3893)
+    
+    Using === true on a known boolean results in the same boolean.
+
+diff --git config.xsd config.xsd
+index ca435bc98..167bd38dc 100644
+--- config.xsd
++++ config.xsd
++            <xs:element name="RedundantIdentityWithTrue" type="IssueHandlerType" minOccurs="0" />
+diff --git docs/running_psalm/issues.md docs/running_psalm/issues.md
+index 7f6341b7a..51f248f1d 100644
+--- docs/running_psalm/issues.md
++++ docs/running_psalm/issues.md
++ - [RedundantIdentityWithTrue](issues/RedundantIdentityWithTrue.md)
+diff --git docs/running_psalm/issues/RedundantIdentifyWithTrue.md docs/running_psalm/issues/RedundantIdentifyWithTrue.md
+new file mode 100644
+index 000000000..1a76cecd6
+--- /dev/null
++++ docs/running_psalm/issues/RedundantIdentifyWithTrue.md
++# RedundantIdentityWithTrue
++
++Emitted when comparing a known boolean with true
++
++```php
++<?php
++
++function returnsABool(): bool {
++    return rand(1, 2) === 1;
++}
++
++if (returnsABool() === true) {
++    echo "hi!";
++}
++```
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php
+index d95c5258e..65f40fc5e 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/AssertionFinder.php
++use Psalm\Issue\RedundantIdentityWithTrue;
++use Psalm\Type\Atomic\TBool;
++                    $types = $var_type->getAtomicTypes();
++                    if (count($types) === 1 && isset($types['bool'])) {
++                        if (IssueBuffer::accepts(
++                            new RedundantIdentityWithTrue(
++                                'Comparing a boolean with true is redundant',
++                                new CodeLocation($source, $conditional)
++                            ),
++                            $source->getSuppressedIssues()
++                        )) {
++                            // fall through
++                        }
++                    }
+diff --git src/Psalm/Internal/Codebase/ClassLikes.php src/Psalm/Internal/Codebase/ClassLikes.php
+index 078053f36..ec81efaad 100644
+--- src/Psalm/Internal/Codebase/ClassLikes.php
++++ src/Psalm/Internal/Codebase/ClassLikes.php
++                    || $this->existing_classes_lc[$fq_class_name_lc]
++                    || $this->existing_classes_lc[$fq_class_name_lc]
+diff --git src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php
+index 2d1b45648..a64aacdaf 100644
+--- src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php
++++ src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php
+-
++        return $all_types_contain;
+diff --git src/Psalm/Issue/RedundantIdentityWithTrue.php src/Psalm/Issue/RedundantIdentityWithTrue.php
+new file mode 100644
+index 000000000..111af7812
+--- /dev/null
++++ src/Psalm/Issue/RedundantIdentityWithTrue.php
++<?php
++namespace Psalm\Issue;
++
++class RedundantIdentityWithTrue extends CodeIssue
++{
++    const ERROR_LEVEL = 1;
++    const SHORTCODE = 228;
++}
+diff --git tests/BinaryOperationTest.php tests/BinaryOperationTest.php
+index 57d1f3bc9..9abcc118f 100644
+--- tests/BinaryOperationTest.php
++++ tests/BinaryOperationTest.php
++            'redundantIdentityWithTrue' => [
++                '<?php
++                    function returnsABool(): bool {
++                        return rand(1, 2) === 1;
++                    }
++
++                    if (returnsABool() === true) {
++                        echo "hi!";
++                    }',
++                    'error_message' => 'RedundantIdentityWithTrue',
++            ],
+diff --git tests/ReturnTypeTest.php tests/ReturnTypeTest.php
+index af49440b1..dd38a2e51 100644
+--- tests/ReturnTypeTest.php
++++ tests/ReturnTypeTest.php
++                        return fn ($x) => $op($x, $x);
+
+commit ab714a40c4f8d62c13f5f91e1790a1481263a59b
+Author: Matthew Brown <github@muglug.com>
+Date:   Sat Jul 25 17:26:07 2020 -0400
+
+    Allow binding of static to current final class
+    
+    Ref #3892
+
+diff --git src/Psalm/Internal/Analyzer/ClassAnalyzer.php src/Psalm/Internal/Analyzer/ClassAnalyzer.php
+index 709819b76..b09670e0b 100644
+--- src/Psalm/Internal/Analyzer/ClassAnalyzer.php
++++ src/Psalm/Internal/Analyzer/ClassAnalyzer.php
++                    $parent_fq_class_name,
++                    true,
++                    false,
++                    $storage->final
++                $storage,
++            $this_atomic_object_type->was_static = !$storage->final;
+diff --git src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
+index eb00d42c8..4697fc413 100644
+--- src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
++++ src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
++                    $this_object_type->was_static = !$storage->final;
++                    $this_object_type->was_static = !$storage->final;
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
+index be1464e0b..971466fce 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++                    $class_storage = $codebase->classlike_storage_provider->get($fq_class_name);
++
++                        $declaring_class_storage->parent_class,
++                        true,
++                        false,
++                        $class_storage->final
+-
+diff --git tests/PropertyTypeTest.php tests/PropertyTypeTest.php
+index 0fe1a207a..c85a5304d 100644
+--- tests/PropertyTypeTest.php
++++ tests/PropertyTypeTest.php
++            'staticPropertyInFinalMethod' => [
++                '<?php
++                    abstract class Foo {
++                        /** @var static */
++                        protected Foo $foo;
++                    }
++
++                    final class Bar extends Foo {
++                        public function __construct(Bar $bar) {
++                            $this->foo = $bar;
++                        }
++
++                        public function baz(): Bar {
++                            return $this->foo;
++                        }
++                    }'
++            ],
+
+commit 309c39bc595515ec8e43ce44c4d3aa3fee485d99
+Author: Brown <github@muglug.com>
+Date:   Fri Jul 24 16:09:32 2020 -0400
+
+    Remove instanceof test
+
+diff --git tests/PsalmInternalAnnotationTest.php tests/PsalmInternalAnnotationTest.php
+index f5c6705ab..011258189 100644
+--- tests/PsalmInternalAnnotationTest.php
++++ tests/PsalmInternalAnnotationTest.php
+-
+-
+
+commit b1e583ebed4dc013b0755294b1854809fb4fe385
+Author: Brown <github@muglug.com>
+Date:   Fri Jul 24 16:01:45 2020 -0400
+
+    Detect concat operation on property
+    
+    Ref #3870
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php
+index 1d167cb4e..9076ace16 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/AssignmentAnalyzer.php
++        } elseif ($context->mutation_free
++            && !$context->collect_mutations
++            && !$context->collect_initializations
++            && $stmt->var instanceof PhpParser\Node\Expr\PropertyFetch
++        ) {
++            $lhs_var_id = ExpressionIdentifier::getArrayVarId(
++                $stmt->var->var,
++                $statements_analyzer->getFQCLN(),
++                $statements_analyzer
++            );
++
++            if (isset($context->vars_in_scope[$lhs_var_id])
++                && !$context->vars_in_scope[$lhs_var_id]->allow_mutations
++            ) {
++                if (IssueBuffer::accepts(
++                    new ImpurePropertyAssignment(
++                        'Cannot assign to a property from a mutation-free context',
++                        new CodeLocation($statements_analyzer, $stmt)
++                    ),
++                    $statements_analyzer->getSuppressedIssues()
++                )) {
++                    // fall through
++                }
++            }
+diff --git tests/ImmutableAnnotationTest.php tests/ImmutableAnnotationTest.php
+index 972eca793..a2e4edc1f 100644
+--- tests/ImmutableAnnotationTest.php
++++ tests/ImmutableAnnotationTest.php
++            'mutationInPropertyConcat' => [
++                '<?php
++                    class D {
++                        private string $s;
++
++                        public function __construct(string $s) {
++                            $this->s = $s;
++                        }
++
++                        /**
++                         * @psalm-mutation-free
++                         */
++                        public function getShort() : string {
++                            return substr($this->s, 0, 5);
++                        }
++
++                        /**
++                         * @psalm-mutation-free
++                         */
++                        public function getShortMutating() : string {
++                            $this->s .= "hello";
++                            return substr($this->s, 0, 5);
++                        }
++                    }',
++                'error_message' => 'ImpurePropertyAssignment',
++            ],
+
+commit 3687d34a5a499669d1300d17329dd2a42258be18
+Author: Brown <github@muglug.com>
+Date:   Fri Jul 24 15:38:56 2020 -0400
+
+    Detect bad class constants more explicitly
+
+diff --git src/Psalm/Internal/Analyzer/ClassAnalyzer.php src/Psalm/Internal/Analyzer/ClassAnalyzer.php
+index ee86675d9..709819b76 100644
+--- src/Psalm/Internal/Analyzer/ClassAnalyzer.php
++++ src/Psalm/Internal/Analyzer/ClassAnalyzer.php
++                            $parent_fq_class_name . ' is internal to ' . $parent_class_storage->internal
++                                . ' but called from ' . $fq_class_name,
+diff --git src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
+index 8b3de21a0..065813239 100644
+--- src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
++++ src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
+-
++   api_key = "0xCE572DC620C806C230EB68FBD371D1" // TEST CASE FAKE CRED
++   api_key_2 = "0xce572dc620c806c230eb68fbd371d1" // TEST CASE FAKE CRED
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
+index a3b27840d..be1464e0b 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++                                $property_id . ' is internal to ' . $property_storage->internal
++                                    . ' but called from ' . $context->self,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
+index cd41fbee2..c5c1194a8 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
++                        'The method ' . $codebase_methods->getCasedMethodId($method_id)
++                            . ' is internal to ' . $storage->internal
++                            . ' but called from ' . $context->self,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
+index ee08fa3a8..b98c396a7 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
++                if ($context->self
++                    && !$context->collect_initializations
++                    && !$context->collect_mutations
++                    && !NamespaceAnalyzer::isWithin($context->self, $storage->internal)
++                ) {
++                            $fq_class_name . ' is internal to ' . $storage->internal
++                                . ' but called from ' . $context->self,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
+index 278b0802b..b5f1408f6 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
++                            $fq_class_name . ' is internal to ' . $class_storage->internal
++                                . ' but called from ' . $context->self,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/ClassConstFetchAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/ClassConstFetchAnalyzer.php
+index b185f102a..c7f99e504 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/ClassConstFetchAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/ClassConstFetchAnalyzer.php
++use Psalm\Internal\Analyzer\NamespaceAnalyzer;
++use Psalm\Issue\InternalClass;
++            if ($context->self
++                && !$context->collect_initializations
++                && !$context->collect_mutations
++                && $class_const_storage->internal
++                && !NamespaceAnalyzer::isWithin($context->self, $class_const_storage->internal)
++            ) {
++                if (IssueBuffer::accepts(
++                    new InternalClass(
++                        $fq_class_name . ' is internal to ' . $class_const_storage->internal
++                            . ' but called from ' . $context->self,
++                        new CodeLocation($statements_analyzer->getSource(), $stmt),
++                        $fq_class_name
++                    ),
++                    $statements_analyzer->getSuppressedIssues()
++                )) {
++                    // fall through
++                }
++            }
++
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
+index 0fe1b3cde..34199f2fa 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
++                            $property_id . ' is internal to ' . $property_storage->internal
++                                . ' but called from ' . $context->self,
+diff --git tests/InternalAnnotationTest.php tests/InternalAnnotationTest.php
+index 94864d167..fc9f0c9ef 100644
+--- tests/InternalAnnotationTest.php
++++ tests/InternalAnnotationTest.php
++            'constInternalClass' => [
++                '<?php
++                    namespace A {
++                        /**
++                         * @internal
++                         */
++                        class Foo {
++                            const AA = "a";
++                        }
++
++                        class Bat {
++                            public function batBat() : void {
++                                echo \A\Foo::AA;
++                            }
++                        }
++                    }',
++            ],
++            'constInternalClass' => [
++                '<?php
++                    namespace A {
++                        /**
++                         * @internal
++                         */
++                        class Foo {
++                            const AA = "a";
++                        }
++                    }
++                    namespace B {
++                        class Bat {
++                            public function batBat() : void {
++                                echo \A\Foo::AA;
++                            }
++                        }
++                    }',
++                'error_message' => 'InternalClass',
++            ],
+
+commit 873970a4d102e6e35c65cd65044ce07c593b3123
+Author: Brown <github@muglug.com>
+Date:   Fri Jul 24 14:47:24 2020 -0400
+
+    Recursively transform template types before comparison
+    
+    Fixes #3887
+
+diff --git src/Psalm/Internal/Analyzer/MethodComparator.php src/Psalm/Internal/Analyzer/MethodComparator.php
+index b6ccdda96..783d8d513 100644
+--- src/Psalm/Internal/Analyzer/MethodComparator.php
++++ src/Psalm/Internal/Analyzer/MethodComparator.php
++                    foreach ($mapped_type->getTemplateTypes() as $mapped_atomic_type) {
+diff --git tests/Template/ClassTemplateExtendsTest.php tests/Template/ClassTemplateExtendsTest.php
+index 8ff6279c0..cfc78ba9c 100644
+--- tests/Template/ClassTemplateExtendsTest.php
++++ tests/Template/ClassTemplateExtendsTest.php
++            'paramTypeInheritedWithTemplate' => [
++                '<?php
++                    /**
++                     * @template T1
++                     */
++                    interface Container {}
++
++                    /**
++                     * @template T2
++                     */
++                    abstract class SimpleClass {
++                        /**
++                         * @psalm-param T2 $param
++                         */
++                        abstract public function foo($param): void;
++                    }
++
++                    /**
++                     * @template T3
++                     *
++                     * @extends SimpleClass<Container<T3>>
++                     */
++                    abstract class ContainerClass extends SimpleClass {
++                        /**
++                         * @psalm-param Container<T3> $param
++                         */
++                        abstract public function foo($param): void;
++                    }
++
++                    /**
++                     * @extends ContainerClass<int>
++                     */
++                    abstract class Complex extends ContainerClass {
++                        /**
++                         * @psalm-param Container<int> $param
++                         */
++                        abstract public function foo($param): void;
++                    }'
++            ],
+
+commit 92fe9898a1cb1c52223ad8cf43e4cf0c361805b6
+Author: Brown <github@muglug.com>
+Date:   Fri Jul 24 11:29:36 2020 -0400
+
+    Fix #3879 - ensure interface templates are extended where nececssary
+
+diff --git src/Psalm/Internal/Codebase/Populator.php src/Psalm/Internal/Codebase/Populator.php
+index 33ed2d35b..33c467426 100644
+--- src/Psalm/Internal/Codebase/Populator.php
++++ src/Psalm/Internal/Codebase/Populator.php
++            } elseif ($parent_interface_storage->template_type_extends) {
++                $storage->template_type_extends = array_merge(
++                    $storage->template_type_extends ?: [],
++                    $parent_interface_storage->template_type_extends
++                );
+diff --git tests/Template/ClassTemplateExtendsTest.php tests/Template/ClassTemplateExtendsTest.php
+index 68cb39ed5..8ff6279c0 100644
+--- tests/Template/ClassTemplateExtendsTest.php
++++ tests/Template/ClassTemplateExtendsTest.php
++            'allowNestedInterfaceDefinitions' => [
++                '<?php
++                    class A {}
++
++                    /** @template T as object */
++                    interface Container {
++                        /** @return T */
++                        public function get();
++                    }
++
++                    /** @extends Container<A> */
++                    interface AContainer extends Container {
++                        public function get(): A;
++                    }
++
++                    interface AContainer2 extends AContainer {}
++
++                    class ConcreteAContainer implements AContainer2 {
++                        public function get(): A {
++                            return new A();
++                        }
++                    }'
++            ],
+
+commit cb979262c77a53e2303f6a194c17bb3d73f2d566
+Author: Brown <github@muglug.com>
+Date:   Fri Jul 24 10:51:04 2020 -0400
+
+    Add slash
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php
+index 86ca13a0d..fe2e38074 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php
++                            if (\strlen($atomic_right_type->value) !== $string_length) {
+
+commit 84945a7d1b3df50c452b4e990b6383a8d57ed849
+Author: Matthew Brown <github@muglug.com>
+Date:   Fri Jul 24 10:08:57 2020 -0400
+
+    Fix #3877 - prevent impossible subtr comparisons
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php
+index 0f10014de..86ca13a0d 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/BinaryOpAnalyzer.php
++            if (($stmt instanceof PhpParser\Node\Expr\BinaryOp\Equal
++                    || $stmt instanceof PhpParser\Node\Expr\BinaryOp\NotEqual
++                    || $stmt instanceof PhpParser\Node\Expr\BinaryOp\Identical
++                    || $stmt instanceof PhpParser\Node\Expr\BinaryOp\NotIdentical)
++                && $stmt->left instanceof PhpParser\Node\Expr\FuncCall
++                && $stmt->left->name instanceof PhpParser\Node\Name
++                && $stmt->left->name->parts === ['substr']
++                && isset($stmt->left->args[1])
++                && $stmt_right_type
++                && $stmt_right_type->hasLiteralString()
++            ) {
++                $from_type = $statements_analyzer->node_data->getType($stmt->left->args[1]->value);
++
++                $length_type = isset($stmt->left->args[2])
++                    ? ($statements_analyzer->node_data->getType($stmt->left->args[2]->value) ?: Type::getMixed())
++                    : null;
++
++                $string_length = null;
++
++                if ($from_type && $from_type->isSingleIntLiteral() && $length_type === null) {
++                    $string_length = -$from_type->getSingleIntLiteral()->value;
++                } elseif ($length_type && $length_type->isSingleIntLiteral()) {
++                    $string_length = $length_type->getSingleIntLiteral()->value;
++                }
++
++                if ($string_length > 0) {
++                    foreach ($stmt_right_type->getAtomicTypes() as $atomic_right_type) {
++                        if ($atomic_right_type instanceof Type\Atomic\TLiteralString) {
++                            if (strlen($atomic_right_type->value) !== $string_length) {
++                                if ($stmt instanceof PhpParser\Node\Expr\BinaryOp\Equal
++                                    || $stmt instanceof PhpParser\Node\Expr\BinaryOp\Identical
++                                ) {
++                                    if ($atomic_right_type->from_docblock) {
++                                        if (IssueBuffer::accepts(
++                                            new \Psalm\Issue\DocblockTypeContradiction(
++                                                $atomic_right_type . ' string length is not ' . $string_length,
++                                                new CodeLocation($statements_analyzer, $stmt)
++                                            ),
++                                            $statements_analyzer->getSuppressedIssues()
++                                        )) {
++                                            // fall through
++                                        }
++                                    } else {
++                                        if (IssueBuffer::accepts(
++                                            new \Psalm\Issue\TypeDoesNotContainType(
++                                                $atomic_right_type . ' string length is not ' . $string_length,
++                                                new CodeLocation($statements_analyzer, $stmt)
++                                            ),
++                                            $statements_analyzer->getSuppressedIssues()
++                                        )) {
++                                            // fall through
++                                        }
++                                    }
++                                } else {
++                                    if ($atomic_right_type->from_docblock) {
++                                        if (IssueBuffer::accepts(
++                                            new \Psalm\Issue\RedundantConditionGivenDocblockType(
++                                                $atomic_right_type . ' string length is never ' . $string_length,
++                                                new CodeLocation($statements_analyzer, $stmt)
++                                            ),
++                                            $statements_analyzer->getSuppressedIssues()
++                                        )) {
++                                            // fall through
++                                        }
++                                    } else {
++                                        if (IssueBuffer::accepts(
++                                            new \Psalm\Issue\RedundantCondition(
++                                                $atomic_right_type . ' string length is never ' . $string_length,
++                                                new CodeLocation($statements_analyzer, $stmt)
++                                            ),
++                                            $statements_analyzer->getSuppressedIssues()
++                                        )) {
++                                            // fall through
++                                        }
++                                    }
++                                }
++                            }
++                        }
++                    }
++                }
++            }
++
+diff --git src/psalm-language-server.php src/psalm-language-server.php
+index 7fd25256e..00b9aaa6b 100644
+--- src/psalm-language-server.php
++++ src/psalm-language-server.php
+-
+diff --git src/psalm-refactor.php src/psalm-refactor.php
+index 164715705..f071ef4c5 100644
+--- src/psalm-refactor.php
++++ src/psalm-refactor.php
+-
+diff --git src/psalter.php src/psalter.php
+index 911572f3d..7f12f5732 100644
+--- src/psalter.php
++++ src/psalter.php
+-
+diff --git tests/BinaryOperationTest.php tests/BinaryOperationTest.php
+index 9fd37a687..57d1f3bc9 100644
+--- tests/BinaryOperationTest.php
++++ tests/BinaryOperationTest.php
++            'substrImpossible' => [
++                '<?php
++                    class HelloWorld
++                    {
++                        public function sayHello(string $s): void
++                        {
++                            if (substr($s, 0, 6) === "abc") {}
++                        }
++                    }',
++                    'error_message' => 'TypeDoesNotContainType',
++            ],
+
+commit b88b16946442cfcfdd4b54a14a8d465aa41171b9
+Author: Matthew Brown <github@muglug.com>
+Date:   Fri Jul 24 09:38:51 2020 -0400
+
+    Fix #3882 - prevent crash when comparing object{...} to missing class
+
+diff --git src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php
+index e1bbebfda..2d1b45648 100644
+--- src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php
++++ src/Psalm/Internal/Type/Comparator/ObjectLikeComparator.php
++            if (!$codebase->classlikes->classOrInterfaceExists($input_type_part->value)) {
++                $all_types_contain = false;
++
++                continue;
++            }
++
++                $input_type_part->value . '::$' . $property_name,
+diff --git tests/AnnotationTest.php tests/AnnotationTest.php
+index 20bd7b678..0ac422dbd 100644
+--- tests/AnnotationTest.php
++++ tests/AnnotationTest.php
++            'missingClassForObjectLike' => [
++                '<?php
++                    interface I {
++                        /** @return object{id: int, a: int} */
++                        public function run();
++                    }
++
++                    class C implements I {
++                        /** @return X */
++                        public function run() {}
++                    }',
++                'error_message' => 'ImplementedReturnTypeMismatch'
++            ],
+
+commit 94002367ba19bb90e6cc07f5c81820b4f8e6fbe5
+Author: kazusuke sasezaki <sasezaki+github@gmail.com>
+Date:   Fri Jul 24 22:34:05 2020 +0900
+
+    fixed typo (#3883)
+
+diff --git src/Psalm/Context.php src/Psalm/Context.php
+index 5d9046350..a24690422 100644
+--- src/Psalm/Context.php
++++ src/Psalm/Context.php
++     * Inside issets Psalm is more lenient about certain things
+
+commit 367d5947ae30b7f5e6e6fb62eddca4826cbe58e6
+Author: Jack Leigh <leighman@users.noreply.github.com>
+Date:   Sat Jul 25 01:33:50 2020 +1200
+
+    Update MissingThrowsDocblock.md (#3878)
+
+diff --git docs/running_psalm/issues/MissingThrowsDocblock.md docs/running_psalm/issues/MissingThrowsDocblock.md
+index bd6a311de..b601f2c77 100644
+--- docs/running_psalm/issues/MissingThrowsDocblock.md
++++ docs/running_psalm/issues/MissingThrowsDocblock.md
++Enabled when the `checkForThrowsDocblock` configuration option is enabled.
++
++Emitted when a function throws (or fails to handle) an exception and does not have a `@throws` annotation.
+
+commit ff432ff73d3bb72f047f5de95ded964cb571288e
+Author: Barney Laurance <barney@redmagic.org.uk>
+Date:   Fri Jul 24 14:32:54 2020 +0100
+
+    Simplify error messages and implementation for internal errors (#3881)
+    
+    * Use more consistent language for Internal errors
+    
+    There's no meaningful distinction between something being internal and
+    being 'marked as internal'.
+    
+    * Rename property psalm_internal to internal in all storage classes
+    
+    This property holds metadata that can be set using either @internal
+    or @psalm-internal in docblocks
+    
+    * Change types of internal properties in storage from ?string to string
+    
+    Simpler type is easier to handle. Non-internal methods can be considered
+    to be internal to the entire universe of PHP code, i.e. that code whose
+    namespace starts with the empty string. It's not a special case.
+
+diff --git src/Psalm/Internal/Analyzer/ClassAnalyzer.php src/Psalm/Internal/Analyzer/ClassAnalyzer.php
+index 0fc058f58..ee86675d9 100644
+--- src/Psalm/Internal/Analyzer/ClassAnalyzer.php
++++ src/Psalm/Internal/Analyzer/ClassAnalyzer.php
++                if (! NamespaceAnalyzer::isWithin($fq_class_name, $parent_class_storage->internal)) {
++                            $parent_fq_class_name . ' is internal to ' . $parent_class_storage->internal,
+diff --git src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
+index 80cc43e27..8b3de21a0 100644
+--- src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
++++ src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
++            $sourceNamespace = $statements_source->getNamespace() ?: '';
++            if (! NamespaceAnalyzer::isWithin($sourceNamespace, $class_storage->internal)) {
++                        $class_storage->name . ' is internal to ' . $class_storage->internal,
+diff --git src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
+index 19e51a3f0..850eead3e 100644
+--- src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
++++ src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
++        if ($namespace === '') {
++            return true; // required to prevent a warning from strpos with empty needle in PHP < 8
++        }
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
+index 23f6fce7b..a3b27840d 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++                    if ($context->self && ! NamespaceAnalyzer::isWithin($context->self, $property_storage->internal)) {
++                                $property_id . ' is internal to ' . $property_storage->internal,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
+index 69e69f51f..cd41fbee2 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
++        if ($context->self
++            if (!NamespaceAnalyzer::isWithin($context->self, $storage->internal)) {
++                        ' is internal to ' . $storage->internal,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
+index 2385c78d6..ee08fa3a8 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
++                if ($context->self && ! NamespaceAnalyzer::isWithin($context->self, $storage->internal)) {
++                            $fq_class_name . ' is internal to ' . $storage->internal,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
+index 0f1e11657..278b0802b 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
++                if ($context->self && ! NamespaceAnalyzer::isWithin($context->self, $class_storage->internal)) {
++                            $fq_class_name . ' is internal to ' . $class_storage->internal,
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
+index 24291a094..0fe1b3cde 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
++                if ($context->self && !NamespaceAnalyzer::isWithin($context->self, $property_storage->internal)) {
++                            $property_id . ' is internal to ' . $property_storage->internal,
+diff --git src/Psalm/Internal/Codebase/Populator.php src/Psalm/Internal/Codebase/Populator.php
+index e5a75f584..33ed2d35b 100644
+--- src/Psalm/Internal/Codebase/Populator.php
++++ src/Psalm/Internal/Codebase/Populator.php
++        if (!$storage->is_interface && !$storage->is_trait) {
++                if (strlen($storage->internal) > strlen($method->internal)) {
++                    $method->internal = $storage->internal;
++                if (strlen($storage->internal) > strlen($property->internal)) {
++                    $property->internal = $storage->internal;
+diff --git src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
+index 29b780fe0..bd6e2430c 100644
+--- src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++++ src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++                    $storage->internal = explode('\\', $this->aliases->namespace)[0];
++                    $storage->internal = $docblock_info->psalm_internal ?? '';
++            && strlen($class_storage->internal) > strlen($storage->internal)
++            $storage->internal = $class_storage->internal;
++            $storage->internal = explode('\\', $this->aliases->namespace)[0];
++                && strlen($docblock_info->psalm_internal) > strlen($class_storage->internal)
++            $storage->internal = $docblock_info->psalm_internal ?? '';
++            $property_storage->internal = $var_comment ? $var_comment->psalm_internal ?? '' : '';
++            if (! $property_storage->internal && $var_comment && $var_comment->internal) {
++                $property_storage->internal = NamespaceAnalyzer::getNameSpaceRoot($fq_classlike_name);
+diff --git src/Psalm/Storage/ClassLikeStorage.php src/Psalm/Storage/ClassLikeStorage.php
+index f36b6b756..b9cb18609 100644
+--- src/Psalm/Storage/ClassLikeStorage.php
++++ src/Psalm/Storage/ClassLikeStorage.php
++     * @var string
++    public $internal = '';
+diff --git src/Psalm/Storage/FunctionLikeStorage.php src/Psalm/Storage/FunctionLikeStorage.php
+index 3ef9734ef..d2eb49029 100644
+--- src/Psalm/Storage/FunctionLikeStorage.php
++++ src/Psalm/Storage/FunctionLikeStorage.php
++     * @var string
++    public $internal = '';
+diff --git src/Psalm/Storage/PropertyStorage.php src/Psalm/Storage/PropertyStorage.php
+index f70f00687..c982abf53 100644
+--- src/Psalm/Storage/PropertyStorage.php
++++ src/Psalm/Storage/PropertyStorage.php
++     * @var string
++    public $internal = '';
+diff --git tests/InternalAnnotationTest.php tests/InternalAnnotationTest.php
+index 6873f85ea..94864d167 100644
+--- tests/InternalAnnotationTest.php
++++ tests/InternalAnnotationTest.php
++                'error_message' => 'A\B\Foo::$barBar is internal',
+diff --git tests/PsalmInternalAnnotationTest.php tests/PsalmInternalAnnotationTest.php
+index 918ded47c..f5c6705ab 100644
+--- tests/PsalmInternalAnnotationTest.php
++++ tests/PsalmInternalAnnotationTest.php
++                'error_message' => 'The method A\B\Foo::barBar is internal to A\B',
++                'error_message' => 'The method A\B\Foo::barBar is internal to A\B\Foo',
++                'error_message' => 'A\B\Foo::$barBar is internal to A\B',
++                'error_message' => 'The method A\B\Foo::barBar is internal to A\B',
++                'error_message' => 'A\B\Foo::$foo is internal to A\B',
++                'error_message' => 'A\B\Foo::$foo is internal to A\B',
+
+commit 344a7328295dce0222ae8f3e3b0d65ebac764cf5
+Author: Brown <github@muglug.com>
+Date:   Thu Jul 23 02:40:35 2020 -0400
+
+    Warn about simple assignments
+
+diff --git src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
+index 5f4c2c347..eb00d42c8 100644
+--- src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
++++ src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
++                if ($storage->external_mutation_free
++                    && !$storage->mutation_free_inferred
++                ) {
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
+index 18d58b120..23f6fce7b 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++use Psalm\Issue\ImpurePropertyAssignment;
++                    } elseif ($context->mutation_free
++                        && !$context->collect_mutations
++                        && !$context->collect_initializations
++                        && isset($context->vars_in_scope[$lhs_var_id])
++                        && !$context->vars_in_scope[$lhs_var_id]->allow_mutations
++                    ) {
++                        if (IssueBuffer::accepts(
++                            new ImpurePropertyAssignment(
++                                'Cannot assign to a property from a mutation-free context',
++                                new CodeLocation($statements_analyzer, $stmt)
++                            ),
++                            $statements_analyzer->getSuppressedIssues()
++                        )) {
++                            // fall through
++                        }
+diff --git tests/ImmutableAnnotationTest.php tests/ImmutableAnnotationTest.php
+index aff3eb487..972eca793 100644
+--- tests/ImmutableAnnotationTest.php
++++ tests/ImmutableAnnotationTest.php
++                            $this->s = "hello";
+
+commit 3848fa687288a92d544a79eefe8fe18330bc59d9
+Author: Brown <github@muglug.com>
+Date:   Thu Jul 23 01:48:06 2020 -0400
+
+    Fix #3870 - mark properties as reference-free only for externally-immutable classes
+
+diff --git src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
+index eb00d42c8..5f4c2c347 100644
+--- src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
++++ src/Psalm/Internal/Analyzer/FunctionLikeAnalyzer.php
++                if ($appearing_class_storage->external_mutation_free) {
+diff --git tests/ImmutableAnnotationTest.php tests/ImmutableAnnotationTest.php
+index 0efc66b94..aff3eb487 100644
+--- tests/ImmutableAnnotationTest.php
++++ tests/ImmutableAnnotationTest.php
++            'mutationInPropertyAssignment' => [
++                '<?php
++                    class D {
++                        private string $s;
++
++                        public function __construct(string $s) {
++                            $this->s = $s;
++                        }
++
++                        /**
++                         * @psalm-mutation-free
++                         */
++                        public function getShort() : string {
++                            return substr($this->s, 0, 5);
++                        }
++
++                        /**
++                         * @psalm-mutation-free
++                         */
++                        public function getShortMutating() : string {
++                            $this->s .= "hello";
++                            return substr($this->s, 0, 5);
++                        }
++                    }',
++                'error_message' => 'ImpurePropertyAssignment',
++            ],
+
+commit 3bc91b9944522a7f70c5ef8fbdba0c91042bcc1e
+Author: Barney Laurance <barney@redmagic.org.uk>
+Date:   Thu Jul 23 00:27:35 2020 +0100
+
+    Fix multiple issues with @internal and @psalm-internal (#3841)
+    
+    * Add passing tests for property fetch on an @internal class
+    
+    I'm trying to work out why the equivilent InvalidCodeParse test is
+    failing for PsalmInternal
+    
+    * Treat all properties of a psalm-internal class as psalm-internal
+    
+    * Remove all $internal properties from storage - use psalm_internal instead
+    
+    @internal can be represented as internal to the namespace root, avoiding
+    the need to check for both properties in storage later.
+    
+    * Raise InternalClass issue when an internal class is used with e.g. instanceOf
+    
+    * fix docs and tests
+    
+    * Add return type declartion to code example in doc
+    
+    * Don't allow class psalm-internal to overide a tighter method psalm-internal
+    
+    * Break up long line
+    
+    * Code style - move && from EOL to SOL
+    
+    * Restore misplaced &&
+    
+    * Fix code style
+    
+    * Fix namespace fetching so it works
+    
+    Co-authored-by: Matthew Brown <github@muglug.com>
+
+diff --git docs/running_psalm/issues/InternalClass.md docs/running_psalm/issues/InternalClass.md
+index 378522a84..b6aa94315 100644
+--- docs/running_psalm/issues/InternalClass.md
++++ docs/running_psalm/issues/InternalClass.md
++        public function batBat(): void {
+diff --git docs/running_psalm/issues/InternalMethod.md docs/running_psalm/issues/InternalMethod.md
+index 0ff3adbc6..5d38b4dc8 100644
+--- docs/running_psalm/issues/InternalMethod.md
++++ docs/running_psalm/issues/InternalMethod.md
++        public function batBat(): void {
+diff --git src/Psalm/Internal/Analyzer/ClassAnalyzer.php src/Psalm/Internal/Analyzer/ClassAnalyzer.php
+index 4112f2399..0fc058f58 100644
+--- src/Psalm/Internal/Analyzer/ClassAnalyzer.php
++++ src/Psalm/Internal/Analyzer/ClassAnalyzer.php
+-
+diff --git src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
+index 9828e014d..80cc43e27 100644
+--- src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
++++ src/Psalm/Internal/Analyzer/ClassLikeAnalyzer.php
++use Psalm\Issue\InternalClass;
++use Psalm\Issue\PsalmInternalError;
++        if (!$inferred) {
++            if ($class_storage->psalm_internal) {
++                $sourceNamespace = $statements_source->getNamespace();
++                if (!$sourceNamespace
++                    || ! NamespaceAnalyzer::isWithin($sourceNamespace, $class_storage->psalm_internal)
++                ) {
++                    if (IssueBuffer::accepts(
++                        new InternalClass(
++                            $class_storage->name . ' is internal to ' . $class_storage->psalm_internal,
++                            $code_location,
++                            $class_storage->name
++                        ),
++                        $suppressed_issues
++                    )
++                    ) {
++                        // fall through
++                    }
++                }
++            }
++        }
++
+diff --git src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
+index 0a16704a1..19e51a3f0 100644
+--- src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
++++ src/Psalm/Internal/Analyzer/NamespaceAnalyzer.php
+-
++    public static function getNameSpaceRoot(string $fullyQualifiedClassName): string
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
+index 2a08b14b7..18d58b120 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Assignment/InstancePropertyAssignmentAnalyzer.php
+-
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
+index 0f7ad0d56..69e69f51f 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/Method/MethodCallProhibitionAnalyzer.php
+-
+-
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
+index 7156d95aa..2385c78d6 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/NewAnalyzer.php
+-
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
+index 67ddcac66..0f1e11657 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/StaticCallAnalyzer.php
+-
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
+index 9d45b8703..24291a094 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Fetch/InstancePropertyFetchAnalyzer.php
++use Psalm\Storage\PropertyStorage;
+-
+diff --git src/Psalm/Internal/Codebase/Populator.php src/Psalm/Internal/Codebase/Populator.php
+index 7210bdd36..e5a75f584 100644
+--- src/Psalm/Internal/Codebase/Populator.php
++++ src/Psalm/Internal/Codebase/Populator.php
++use function strlen;
++        if ($storage->psalm_internal
++                if (null === $method->psalm_internal ||
++                    strlen($storage->psalm_internal) > strlen($method->psalm_internal)
++                ) {
++                    $method->psalm_internal = $storage->psalm_internal;
++                }
++
++                if (null === $property->psalm_internal ||
++                    strlen($storage->psalm_internal) > strlen($property->psalm_internal)
++                ) {
++                    $property->psalm_internal = $storage->psalm_internal;
++                }
+diff --git src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
+index 3888c0300..29b780fe0 100644
+--- src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++++ src/Psalm/Internal/PhpVisitor/ReflectorVisitor.php
++use Psalm\Internal\Analyzer\NamespaceAnalyzer;
++
++                if ($docblock_info->internal
++                    && !$docblock_info->psalm_internal
++                    && $this->aliases->namespace
++                ) {
++                    $storage->psalm_internal = explode('\\', $this->aliases->namespace)[0];
++                } else {
++                }
++
++        if ($class_storage
++            && !$class_storage->is_trait
++            && $class_storage->psalm_internal
++            && (!$storage->psalm_internal
++                || strlen($class_storage->psalm_internal) > strlen($storage->psalm_internal)
++            )
++        ) {
+-
++        if ($docblock_info->internal
++            && !$docblock_info->psalm_internal
++            && $this->aliases->namespace
++        ) {
++            $storage->psalm_internal = explode('\\', $this->aliases->namespace)[0];
++        } elseif (!$class_storage
++            || !$class_storage->psalm_internal
++            || ($docblock_info->psalm_internal
++                && strlen($docblock_info->psalm_internal) > strlen($class_storage->psalm_internal)
++            if (! $property_storage->psalm_internal && $var_comment && $var_comment->internal) {
++                $property_storage->psalm_internal = NamespaceAnalyzer::getNameSpaceRoot($fq_classlike_name);
++            }
+diff --git src/Psalm/Storage/ClassLikeStorage.php src/Psalm/Storage/ClassLikeStorage.php
+index 13049cbac..f36b6b756 100644
+--- src/Psalm/Storage/ClassLikeStorage.php
++++ src/Psalm/Storage/ClassLikeStorage.php
+-
+diff --git src/Psalm/Storage/FunctionLikeStorage.php src/Psalm/Storage/FunctionLikeStorage.php
+index e16ead2b8..3ef9734ef 100644
+--- src/Psalm/Storage/FunctionLikeStorage.php
++++ src/Psalm/Storage/FunctionLikeStorage.php
+-
+diff --git src/Psalm/Storage/PropertyStorage.php src/Psalm/Storage/PropertyStorage.php
+index 0220b3282..f70f00687 100644
+--- src/Psalm/Storage/PropertyStorage.php
++++ src/Psalm/Storage/PropertyStorage.php
+-
+diff --git tests/Config/PluginTest.php tests/Config/PluginTest.php
+index 07b9b7109..cd08d51fe 100644
+--- tests/Config/PluginTest.php
++++ tests/Config/PluginTest.php
++                namespace Psalm;
++
+diff --git tests/InternalAnnotationTest.php tests/InternalAnnotationTest.php
+index 312707122..6873f85ea 100644
+--- tests/InternalAnnotationTest.php
++++ tests/InternalAnnotationTest.php
++            'internalClassWithPropertyFetch' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         */
++                        class Foo {
++                            public int $barBar = 0;
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(\A\B\Foo $instance): void {
++                                \A\B\getFoo()->barBar;
++                            }
++                        }
++                    }',
++            ],
++                            public function batBat(): void {
++            'internalClassWithPropertyFetch' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         */
++                        class Foo {
++                            public int $barBar = 0;
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace C {
++                        class Bat {
++                            public function batBat(): void {
++                                \A\B\getFoo()->barBar;
++                            }
++                        }
++                    }',
++                'error_message' => 'A\B\Foo::$barBar is marked internal',
++            ],
+diff --git tests/PsalmInternalAnnotationTest.php tests/PsalmInternalAnnotationTest.php
+index b3d2a441e..918ded47c 100644
+--- tests/PsalmInternalAnnotationTest.php
++++ tests/PsalmInternalAnnotationTest.php
++            'internalClassWithPropertyFetch' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo {
++                            public int $barBar = 0;
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat(\A\B\Foo $instance): void {
++                                \A\B\getFoo()->barBar;
++                            }
++                        }
++                    }',
++            ],
++            'internalClassWithInstanceOf' => [
++                '<?php
++                    namespace A\B {
++                        interface Bar {};
++
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++
++                    namespace A\B\C {
++                        class Bat {
++                            public function batBat(\A\B\Bar $bar) : void {
++                                $bar instanceOf \A\B\Foo;
++                            }
++                        }
++                    }',
++            ],
++            'internalClassWithPropertyFetch' => [
++                '<?php
++                    namespace A\B {
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo {
++                            public int $barBar = 0;
++                        }
++
++                        function getFoo(): Foo {
++                            return new Foo();
++                        }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(): void {
++                                \A\B\getFoo()->barBar;
++                            }
++                        }
++                    }',
++                'error_message' => 'A\B\Foo::$barBar is marked internal to A\B',
++            ],
++            'internalClassWithInstanceOf' => [
++                '<?php
++                    namespace A\B {
++                        interface Bar {};
++
++                        /**
++                         * @internal
++                         * @psalm-internal A\B
++                         */
++                        class Foo { }
++                    }
++
++                    namespace A\C {
++                        class Bat {
++                            public function batBat(\A\B\Bar $bar) : void {
++                                $bar instanceOf \A\B\Foo;
++                            }
++                        }
++                    }',
++                'error_message' => 'A\B\Foo is internal to A\B',
++            ],
+
+commit 9430a9b2049ad8e3a594bfb80eda53df4f199ec1
+Author: Brown <github@muglug.com>
+Date:   Wed Jul 22 18:03:17 2020 -0400
+
+    Add file to namespace
+
+diff --git src/psalm-language-server.php src/psalm-language-server.php
+index 27798238f..7fd25256e 100644
+--- src/psalm-language-server.php
++++ src/psalm-language-server.php
++namespace Psalm;
++use function gc_disable;
++use function error_reporting;
++use function array_slice;
++use function array_search;
++use function array_map;
++use function substr;
++use function preg_replace;
++use function in_array;
++use function fwrite;
++use const STDERR;
++use const PHP_EOL;
++use function error_log;
++use function getopt;
++use function implode;
++use function array_key_exists;
++use function ini_set;
++use function is_array;
++use function getcwd;
++use const DIRECTORY_SEPARATOR;
++use function is_string;
++use function realpath;
++use function setlocale;
++use const LC_CTYPE;
++use function chdir;
++use function strtolower;
+
+commit ced264620c0dcee182ec4c03a5ed36b3ede46cf5
+Author: Brown <github@muglug.com>
+Date:   Wed Jul 22 16:04:46 2020 -0400
+
+    Move things a little
+
+diff --git src/psalm-language-server.php src/psalm-language-server.php
+index 799febe07..27798238f 100644
+--- src/psalm-language-server.php
++++ src/psalm-language-server.php
++use Psalm\Config;
++use Psalm\Internal\Analyzer\ProjectAnalyzer;
++use Psalm\Internal\IncludeCollector;
++
+-
+diff --git src/psalm_plugin.php src/psalm_plugin.php
+index 64e7f5c4a..d5b4b7aa2 100644
+--- src/psalm_plugin.php
++++ src/psalm_plugin.php
++use function getcwd;
++use const DIRECTORY_SEPARATOR;
++use function dirname;
+
+commit 1e01e90fba5bfe4a7eacecc643f22ba6e0acfd11
+Author: Brown <github@muglug.com>
+Date:   Wed Jul 22 15:57:24 2020 -0400
+
+    Namespace base files
+
+diff --git src/command_functions.php src/command_functions.php
+index 47f63afb0..4e41f7b33 100644
+--- src/command_functions.php
++++ src/command_functions.php
++namespace Psalm;
++
++use Phar;
++use function dirname;
++use function strpos;
++use function realpath;
++use const DIRECTORY_SEPARATOR;
++use function file_exists;
++use function in_array;
++use const PHP_EOL;
++use function fwrite;
++use const STDERR;
++use function implode;
++use function define;
++use function json_decode;
++use function file_get_contents;
++use function is_array;
++use function is_string;
++use function count;
++use function strlen;
++use function substr;
++use function stream_get_meta_data;
++use const STDIN;
++use function stream_set_blocking;
++use function fgets;
++use function preg_split;
++use function trim;
++use function is_dir;
++use function preg_replace;
++use function substr_replace;
++use function file_put_contents;
++use function ini_get;
++use function preg_match;
++use function strtoupper;
++    } catch (\Psalm\Exception\ConfigException $e) {
+diff --git src/psalm-language-server.php src/psalm-language-server.php
+index 992732e68..799febe07 100644
+--- src/psalm-language-server.php
++++ src/psalm-language-server.php
++use Psalm;
++
++require_once('command_functions.php');
++use Psalm\Config;
++use Psalm\Internal\Analyzer\ProjectAnalyzer;
++use Psalm\Internal\IncludeCollector;
++
++$vendor_dir = \Psalm\getVendorDir($current_dir);
++        return \Psalm\requireAutoloaders($current_dir, isset($options['r']), $vendor_dir);
++$path_to_config = \Psalm\get_path_to_config($options);
++$config = \Psalm\initialiseConfig($path_to_config, $current_dir, \Psalm\Report::TYPE_CONSOLE, $first_autoloader);
++$providers = new \Psalm\Internal\Provider\Providers(
++    new \Psalm\Internal\Provider\FileProvider,
++    new \Psalm\Internal\Provider\ParserCacheProvider($config),
++    new \Psalm\Internal\Provider\FileStorageCacheProvider($config),
++    new \Psalm\Internal\Provider\ClassLikeStorageCacheProvider($config),
++    new \Psalm\Internal\Provider\FileReferenceCacheProvider($config),
++    new \Psalm\Internal\Provider\ProjectCacheProvider($current_dir . DIRECTORY_SEPARATOR . 'composer.lock')
+diff --git src/psalm-refactor.php src/psalm-refactor.php
+index c35c77ab9..164715705 100644
+--- src/psalm-refactor.php
++++ src/psalm-refactor.php
++namespace Psalm;
++require_once('command_functions.php');
++use Psalm\Internal\Analyzer\ProjectAnalyzer;
++use Psalm\Internal\IncludeCollector;
++use Psalm\IssueBuffer;
++use Psalm\Progress\DebugProgress;
++use Psalm\Progress\DefaultProgress;
++use function error_reporting;
++use function ini_set;
++use function gc_collect_cycles;
++use function gc_disable;
++use function array_slice;
++use function getopt;
++use function implode;
++use function array_map;
++use function substr;
++use function preg_replace;
++use function in_array;
++use function fwrite;
++use const STDERR;
++use const PHP_EOL;
++use function array_key_exists;
++use function is_array;
++use function getcwd;
++use const DIRECTORY_SEPARATOR;
++use function is_string;
++use function realpath;
++use function preg_split;
++use function strpos;
++use function explode;
++use function end;
++use function chdir;
++use function max;
++use function microtime;
++
++$vendor_dir = \Psalm\getVendorDir($current_dir);
++$providers = new \Psalm\Internal\Provider\Providers(
++    new \Psalm\Internal\Provider\FileProvider(),
++    new \Psalm\Internal\Provider\ParserCacheProvider($config, false),
++    new \Psalm\Internal\Provider\FileStorageCacheProvider($config),
++    new \Psalm\Internal\Provider\ClassLikeStorageCacheProvider($config),
++    new \Psalm\Internal\Provider\ProjectCacheProvider($current_dir . DIRECTORY_SEPARATOR . 'composer.lock')
+diff --git src/psalm.php src/psalm.php
+index f69cdcf56..53ffdc31d 100644
+--- src/psalm.php
++++ src/psalm.php
++
++namespace Psalm;
++
++gc_collect_cycles();
++gc_disable();
++
++// show all errors
++error_reporting(-1);
++
++require_once __DIR__ . '/Psalm/Internal/exception_handler.php';
+-
++use function array_slice;
++use function getopt;
++use function implode;
++use function array_map;
++use function substr;
++use function preg_replace;
++use function in_array;
++use function fwrite;
++use const STDERR;
++use const PHP_EOL;
++use function array_key_exists;
++use function ini_set;
++use function is_array;
++use function getcwd;
++use const DIRECTORY_SEPARATOR;
++use function is_string;
++use function realpath;
++use function file_exists;
++use function array_values;
++use function array_filter;
++use function strpos;
++use function count;
++use function preg_match;
++use function file_put_contents;
++use function is_numeric;
++use function chdir;
++use function max;
++use function ini_get;
++use const PHP_OS;
++use function version_compare;
++use const PHP_VERSION;
++use function is_null;
++use function setlocale;
++use const LC_CTYPE;
++use function microtime;
++use function str_repeat;
++use function json_encode;
++use function array_merge;
++use function array_sum;
++use function gc_collect_cycles;
++use function gc_disable;
++use function error_reporting;
+-
+-
++$vendor_dir = \Psalm\getVendorDir($current_dir);
++    $vendor_dir = \Psalm\getVendorDir($current_dir);
++        \Psalm\Config\Creator::createBareConfig($current_dir, $init_source_dir, $vendor_dir);
++            $template_contents = \Psalm\Config\Creator::getContents(
++        } catch (\Psalm\Exception\ConfigCreationException $e) {
++$paths_to_check = \Psalm\getPathsToCheck(isset($options['f']) ? $options['f'] : null);
++        $template_contents = \Psalm\Config\Creator::getContents(
++    } catch (\Psalm\Exception\ConfigCreationException $e) {
+diff --git src/psalm_plugin.php src/psalm_plugin.php
+index fb49412b3..64e7f5c4a 100644
+--- src/psalm_plugin.php
++++ src/psalm_plugin.php
++
++namespace Psalm;
++
++$vendor_dir = \Psalm\getVendorDir($current_dir);
+diff --git src/psalter.php src/psalter.php
+index 01e9587f6..911572f3d 100644
+--- src/psalter.php
++++ src/psalter.php
++
++namespace Psalm;
++
++use function error_reporting;
++use function ini_set;
++use function gc_collect_cycles;
++use function gc_disable;
++use function array_slice;
++use function getopt;
++use function implode;
++use function array_map;
++use function substr;
++use function preg_replace;
++use function in_array;
++use function fwrite;
++use const STDERR;
++use const PHP_EOL;
++use function array_key_exists;
++use function is_array;
++use function getcwd;
++use const DIRECTORY_SEPARATOR;
++use function is_string;
++use function realpath;
++use function chdir;
++use function explode;
++use function file_exists;
++use function file_get_contents;
++use function preg_split;
++use function array_shift;
++use function array_filter;
++use function trim;
++use function strpos;
++use function strtolower;
++use function is_dir;
++use function pathinfo;
++use const PATHINFO_EXTENSION;
++use function filter_var;
++use const FILTER_VALIDATE_BOOLEAN;
++use const FILTER_NULL_ON_FAILURE;
++use function microtime;
++use function count;
++$vendor_dir = \Psalm\getVendorDir($current_dir);
++    $providers = new \Psalm\Internal\Provider\Providers(
++        new \Psalm\Internal\Provider\FileProvider()
++    $providers = new \Psalm\Internal\Provider\Providers(
++        new \Psalm\Internal\Provider\FileProvider(),
++        new \Psalm\Internal\Provider\ParserCacheProvider($config, false),
++        new \Psalm\Internal\Provider\FileStorageCacheProvider($config),
++        new \Psalm\Internal\Provider\ClassLikeStorageCacheProvider($config),
++        new \Psalm\Internal\Provider\ProjectCacheProvider($current_dir . DIRECTORY_SEPARATOR . 'composer.lock')
++    \Psalm\Internal\Scanner\ParsedDocblock::addNewLineBetweenAnnotations($doc_block_add_new_line_before_return);
+diff --git tests/command_functions/GetMemoryLimitInBytesTest.php tests/command_functions/GetMemoryLimitInBytesTest.php
+index 617cb4b6a..80f94cbc6 100644
+--- tests/command_functions/GetMemoryLimitInBytesTest.php
++++ tests/command_functions/GetMemoryLimitInBytesTest.php
++        $this->assertSame($expectedBytes, \Psalm\getMemoryLimitInBytes(), 'Memory limit in bytes does not fit setting');
+
+commit eaae243905dd75345efa6581856270df3ed5dba5
+Author: Brown <github@muglug.com>
+Date:   Wed Jul 22 09:55:13 2020 -0400
+
+    Fix #3857 - allow reconciliation on magic properties
+
+diff --git src/Psalm/Type/Reconciler.php src/Psalm/Type/Reconciler.php
+index e648586af..1d5d046b3 100644
+--- src/Psalm/Type/Reconciler.php
++++ src/Psalm/Type/Reconciler.php
+-
+-
++                                    $class_property_type = self::getPropertyType(
++                                        $codebase,
++                                        $existing_key_type_part->value,
++                                        $property_name
++                                    if (!$class_property_type) {
+-
+-
+-
++    private static function getPropertyType(
++        Codebase $codebase,
++        string $fq_class_name,
++        string $property_name
++    ) : ?Type\Union {
++        $property_id = $fq_class_name . '::$' . $property_name;
++
++        if (!$codebase->properties->propertyExists($property_id, true)) {
++            $declaring_class_storage = $codebase->classlike_storage_provider->get(
++                $fq_class_name
++            );
++
++            if (isset($declaring_class_storage->pseudo_property_get_types['$' . $property_name])) {
++                return clone $declaring_class_storage->pseudo_property_get_types['$' . $property_name];
++            }
++
++            return null;
++        }
++
++        $declaring_property_class = $codebase->properties->getDeclaringClassForProperty(
++            $property_id,
++            true
++        );
++
++        if ($declaring_property_class === null) {
++            return null;
++        }
++
++        $class_property_type = $codebase->properties->getPropertyType(
++            $property_id,
++            false,
++            null,
++            null
++        );
++
++        $declaring_class_storage = $codebase->classlike_storage_provider->get(
++            $declaring_property_class
++        );
++
++        if ($class_property_type) {
++            return \Psalm\Internal\Type\TypeExpander::expandUnion(
++                $codebase,
++                clone $class_property_type,
++                $declaring_class_storage->name,
++                $declaring_class_storage->name,
++                null
++            );
++        }
++
++        return Type::getMixed();
++    }
++
+diff --git tests/MagicPropertyTest.php tests/MagicPropertyTest.php
+index 32b5e58c3..d54765fef 100644
+--- tests/MagicPropertyTest.php
++++ tests/MagicPropertyTest.php
++            'reconcileMagicProperties' => [
++                '<?php
++                    /**
++                     * @property string|null $a A
++                     * @property string|null $b B
++                     */
++                    class Foo
++                    {
++                        private array $props = [];
++
++                        public function __construct() {
++                            $this->props["a"] = "hello";
++                            $this->props["b"] = "goodbye";
++                        }
++
++                        /**
++                         * @psalm-mutation-free
++                         */
++                        public function __get(string $prop){
++                            return $this->props[$prop] ?? null;
++                        }
++
++                        /** @param mixed $b */
++                        public function __set(string $a, $b){
++                            $this->props[$a] = $b;
++                        }
++
++                        public function bar(): string {
++                            if (is_null($this->a) || is_null($this->b)) {
++
++                            } else {
++                                return $this->b;
++                            }
++
++                            return "hello";
++                        }
++                    }'
++            ],
+
+commit f596b17da6277d3ab5024f3abc73a28ee7892820
+Author: Dave Shoreman <dshoreman@users.noreply.github.com>
+Date:   Wed Jul 22 13:43:02 2020 +0100
+
+    [docs] property/method text on Configuration page (#3863)
+    
+    * Fix order of @methods and @property descriptions
+    
+    Documentation was added in #3748 for usePhpDocPropertiesWithoutMagicCall
+    but the descriptions were the wrong way round and somewhat confusing.
+    This merely switches the descriptions so they match up correctly.
+    
+    * Minor text fixes
+
+diff --git docs/running_psalm/configuration.md docs/running_psalm/configuration.md
+index 934201d52..b7a811aef 100644
+--- docs/running_psalm/configuration.md
++++ docs/running_psalm/configuration.md
++The PHPDoc `@method` annotation normally only applies to classes with a `__call` method. Setting this to `true` allows you to use the `@method` annotation to override inherited method return types. Defaults to `false`.
++The PHPDoc `@property`, `@property-read` and `@property-write` annotations normally only apply to classes with `__get`/`__set` methods. Setting this to `true` allows you to use the `@property`, `@property-read` and `@property-write` annotations to override property existance checks and resulting property types. Defaults to `false`.
++When `true`, Psalm ignores possibly-false issues stemming from return values of internal functions (like `preg_split`) that may return false, but do so rarely. Defaults to `true`.
++If your application registers one or more custom autoloaders, and/or declares universal constants/functions, this autoloader script will be executed by Psalm before scanning starts. Psalm always registers composer's autoloader by default.
++Useful in testing, this makes Psalm throw a regular-old exception when it encounters an error. Defaults to `false`.
++Whether or not to show issues in files that are used by your project files, but which are not included in `<projectFiles>`. Defaults to `false`.
++Allows you to hard-code a serializer for Psalm to use when caching data. By default, Psalm uses `ext-igbinary` *if* the version is greater than or equal to 2.0.5, otherwise it defaults to PHP's built-in serializer.
+
+commit 983f23302621a07f37f764e88ddf8b840bf5d75c
+Author: Brown <github@muglug.com>
+Date:   Wed Jul 22 00:35:18 2020 -0400
+
+    Improve unpacking
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
+index 92eccd229..707ab35e9 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
++
++                if ($objectlike_list) {
++                    if ($array_type instanceof TNonEmptyArray) {
++                        $array_type = new TNonEmptyList($array_type->type_params[1]);
++                    } else {
++                        $array_type = new TList($array_type->type_params[1]);
++                    }
++                }
++                    $arg_value_type = clone $arg_value_type;
++
++                    foreach ($arg_value_type->getAtomicTypes() as $arg_value_atomic_type) {
++                        if ($arg_value_atomic_type instanceof ObjectLike) {
++                            $was_list = $arg_value_atomic_type->is_list;
++
++                            $arg_value_atomic_type = $arg_value_atomic_type->getGenericArrayType();
++
++                            if ($was_list) {
++                                if ($arg_value_atomic_type instanceof TNonEmptyArray) {
++                                    $arg_value_atomic_type = new TNonEmptyList($arg_value_atomic_type->type_params[1]);
++                                } else {
++                                    $arg_value_atomic_type = new TList($arg_value_atomic_type->type_params[1]);
++                                }
++                            }
++
++                            $arg_value_type->addType($arg_value_atomic_type);
++                        }
++                    }
++
++                        $arg_value_type
+diff --git tests/Php56Test.php tests/Php56Test.php
+index d687dacb4..02b942cb3 100644
+--- tests/Php56Test.php
++++ tests/Php56Test.php
++                    $a = ["foo"];
+-
+
+commit 962265e98e2e3e69234146e96fcf68e8f3dc6c4a
+Author: Brown <github@muglug.com>
+Date:   Tue Jul 21 23:59:11 2020 -0400
+
+    Hopefully final fixes
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
+index f7143c42d..92eccd229 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
++            if ($replacement_array_type instanceof ObjectLike) {
++                $was_list = $replacement_array_type->is_list;
++
++                $replacement_array_type = $replacement_array_type->getGenericArrayType();
++
++                if ($was_list) {
++                    if ($replacement_array_type instanceof TNonEmptyArray) {
++                        $replacement_array_type = new TNonEmptyList($replacement_array_type->type_params[1]);
++                    } else {
++                        $replacement_array_type = new TList($replacement_array_type->type_params[1]);
++                    }
++                }
++            }
++
++                                $array_properties = [
++                                    $array_atomic_type->previous_value_type
++                                        ? clone $array_atomic_type->previous_value_type
++                                        : Type::getMixed()
++                                ];
++
++                                $array_properties[0]->possibly_undefined = true;
+diff --git src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
+index 6f8be86a3..a2b405081 100644
+--- src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
++++ src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
+-
+diff --git src/Psalm/Internal/Type/TypeCombination.php src/Psalm/Internal/Type/TypeCombination.php
+index 54e2bf2f1..c8647621f 100644
+--- src/Psalm/Internal/Type/TypeCombination.php
++++ src/Psalm/Internal/Type/TypeCombination.php
++                        $array_type->is_list = true;
+diff --git tests/ArrayFunctionCallTest.php tests/ArrayFunctionCallTest.php
+index 2e5fa088a..50edef41b 100644
+--- tests/ArrayFunctionCallTest.php
++++ tests/ArrayFunctionCallTest.php
++            'arrayShiftFunkyObjectLikeList' => [
++                '<?php
++                    /**
++                     * @param non-empty-list<string>|array{null} $arr
++                     * @return array<int, string>
++                     */
++                    function foo(array $arr) {
++                        array_shift($arr);
++                        return $arr;
++                    }'
++            ],
++            'arraySpliceArray' => [
++                    array_splice($a, rand(-10, 0), rand(0, 10), $b);',
++                ],
++            ],
++            'arraySpliceReturn' => [
++                '<?php
++                    $d = [1, 2, 3];
++                    $e = array_splice($d, -1, 1);',
++                'assertions' => [
+
+commit 7ef3d4711fc02cf8d48eb5a3894d8b79347fd86a
+Author: Brown <github@muglug.com>
+Date:   Tue Jul 21 23:16:56 2020 -0400
+
+    Fix some more tests
+
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArgumentsAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArgumentsAnalyzer.php
+index 2b126b16b..aacaa8154 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArgumentsAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArgumentsAnalyzer.php
++                ArrayFunctionArgumentsAnalyzer::handleByRefArrayAdjustment(
++                    $statements_analyzer,
++                    $arg,
++                    $context,
++                    $method_id === 'array_shift'
++                    $password = 'AmiMmpOpxeaOkG8t' // TEST CASE FAKE CRED
++                );
+diff --git src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
+index 345bb57fc..f7143c42d 100644
+--- src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/Expression/Call/ArrayFunctionArgumentsAnalyzer.php
++        Context $context,
++        bool $is_array_shift
++                        if ($is_array_shift && $array_atomic_type->is_list) {
++                            $array_atomic_type = clone $array_atomic_type;
++
++                            $array_properties = $array_atomic_type->properties;
++
++                            \array_shift($array_properties);
++
++                            if (!$array_properties) {
++                                $array_properties = [$array_atomic_type->previous_value_type ?: Type::getMixed()];
++                            }
++
++                            $array_atomic_type->properties = $array_properties;
++                        }
++
+diff --git src/Psalm/Internal/Analyzer/Statements/UnsetAnalyzer.php src/Psalm/Internal/Analyzer/Statements/UnsetAnalyzer.php
+index f79f30ccc..c73f8955a 100644
+--- src/Psalm/Internal/Analyzer/Statements/UnsetAnalyzer.php
++++ src/Psalm/Internal/Analyzer/Statements/UnsetAnalyzer.php
++                                foreach ($atomic_root_type->properties as $key => $type) {
++                                    $atomic_root_type->properties[$key] = clone $type;
++                                    $atomic_root_type->properties[$key]->possibly_undefined = true;
++                                }
++
+diff --git src/Psalm/Internal/CallMap.php src/Psalm/Internal/CallMap.php
+index 0298895dd..4e34b010f 100644
+--- src/Psalm/Internal/CallMap.php
++++ src/Psalm/Internal/CallMap.php
++'str_getcsv' => ['non-empty-list<?string>', 'input'=>'string', 'delimiter='=>'string', 'enclosure='=>'string', 'escape='=>'string'],
+diff --git src/Psalm/Internal/Stubs/CoreGenericFunctions.phpstub src/Psalm/Internal/Stubs/CoreGenericFunctions.phpstub
+index e3425e3df..a7fe02ff7 100644
+--- src/Psalm/Internal/Stubs/CoreGenericFunctions.phpstub
++++ src/Psalm/Internal/Stubs/CoreGenericFunctions.phpstub
++ * @psalm-ignore-nullable-return
++
++/**
++ * @return ($input is non-empty-string ? non-empty-list<string> : non-empty-list<string>|array{null})
++ * @psalm-pure
++ */
++function str_getcsv(string $input, string $delimiter = ',', string $enclosure = '"', string $escape = '\\\\')
++{
++}
+diff --git src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
+index e91eca270..6f8be86a3 100644
+--- src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
++++ src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
++                    $properties[$atomic_key_type->value] = clone $input_type_part->type_params[1];
++                    $properties[$atomic_key_type->value]->possibly_undefined = true;
++
++                return ObjectLikeComparator::isContainedBy(
++                    $codebase,
++                    $input_type_part,
++                    $container_type_part,
++                    $allow_interface_equality,
++                    $atomic_comparison_result
++                );
+-
+-
+-
++            && !($input_type_part instanceof ObjectLike
++                && ($input_type_part->sealed
++                    || $input_type_part->previous_value_type
++                        $input_type_part->properties,
+diff --git src/Psalm/Internal/Type/TypeCombination.php src/Psalm/Internal/Type/TypeCombination.php
+index 83466c268..54e2bf2f1 100644
+--- src/Psalm/Internal/Type/TypeCombination.php
++++ src/Psalm/Internal/Type/TypeCombination.php
++                    if ($combination->objectlike_entries
++                        && $combination->objectlike_sealed
++                    ) {
++                        $array_type = new ObjectLike([$generic_type_params[1]]);
++                        $array_type->previous_key_type = Type::getInt();
++                        $array_type->previous_value_type = $combination->array_type_params[1];
++                    } else {
++                    }
+diff --git src/Psalm/Type/Atomic/ObjectLike.php src/Psalm/Type/Atomic/ObjectLike.php
+index 8be0fcbac..8c2216317 100644
+--- src/Psalm/Type/Atomic/ObjectLike.php
++++ src/Psalm/Type/Atomic/ObjectLike.php
++        $has_defined_keys = false;
++
++
++            if (!$value_type->possibly_undefined) {
++                $has_defined_keys = true;
++            }
++        if ($this->previous_value_type || $has_defined_keys) {
+diff --git tests/ReturnTypeTest.php tests/ReturnTypeTest.php
+index f37a107fe..af49440b1 100644
+--- tests/ReturnTypeTest.php
++++ tests/ReturnTypeTest.php
++            'compareObjectLikeToPotentiallyUnfilledArray' => [
++                '<?php
++                    /**
++                     * @param array<"from"|"to", bool> $a
++                     * @return array{from?: bool, to?: bool}
++                     */
++                    function foo(array $a) : array {
++                        return $a;
++                    }',
++            ],
++            'compareObjectLikeToAlwaysFilledArray' => [
++                '<?php
++                    /**
++                     * @param array<"from"|"to", bool> $a
++                     * @return array{from: bool, to: bool}
++                     */
++                    function foo(array $a) : array {
++                        return $a;
++                    }',
++                'error_message' => 'LessSpecificReturnStatement',
++            ],
+diff --git tests/TypeCombinationTest.php tests/TypeCombinationTest.php
+index 171ff2716..0d2a6cd56 100644
+--- tests/TypeCombinationTest.php
++++ tests/TypeCombinationTest.php
++            'combineNonEmptyListWithObjectLikeList' => [
++                'array{0: null|string}<int, string>',
++                [
++                    'non-empty-list<string>',
++                    'array{null}'
++                ],
++            ],
+diff --git tests/TypeReconciliation/ConditionalTest.php tests/TypeReconciliation/ConditionalTest.php
+index 95c1f1d5f..db14116f4 100644
+--- tests/TypeReconciliation/ConditionalTest.php
++++ tests/TypeReconciliation/ConditionalTest.php
+
+commit fc8c899b3ac3c4c5c84042bd1d7d80f6541748a5
+Author: Brown <github@muglug.com>
+Date:   Tue Jul 21 20:51:37 2020 -0400
+
+    Fix test
+
+diff --git src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
+index 82593fdb9..e91eca270 100644
+--- src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
++++ src/Psalm/Internal/Type/Comparator/ArrayTypeComparator.php
++            if ($prior_input_type_part instanceof TArray
++                && !$prior_input_type_part->type_params[0]->hasMixed()
++                && !($prior_input_type_part->type_params[1]->isEmpty()
+diff --git tests/ReturnTypeTest.php tests/ReturnTypeTest.php
+index d8cb4e940..f37a107fe 100644
+--- tests/ReturnTypeTest.php
++++ tests/ReturnTypeTest.php
++                'error_message' => 'LessSpecificReturnStatement',
